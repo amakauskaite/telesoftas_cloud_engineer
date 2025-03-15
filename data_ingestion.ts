@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as AWS from 'aws-sdk';
-import * as csvParser from 'csv-parser';
+// import * as csvParser from 'csv-parser';
 import * as stream from 'stream';
 
 // Initialize AWS S3
@@ -41,22 +41,26 @@ async function processAndUploadCSV(fileURL: string, fileName: string) {
   try {
     // Fetch the CSV file stream
     const fileStream = await fetchCSV(fileURL);
+
+    // TODO: 
+    // 1. Filter tracks file to only have rows where name is not null (not empty) and duration_ms >= 60 000
+    // 2. Filter artists file to only have rows where artist_id is in the filtered tracks file
     
     // Optionally, you can parse the CSV here if needed
-    const parsedData: any[] = [];
+   // const parsedData: any[] = [];
     
-    fileStream.pipe(csvParser())
-      .on('data', (row) => {
+   // fileStream.pipe(csvParser())
+    //  .on('data', (row) => {
         // Process each row of the CSV, if needed
-        parsedData.push(row);
-      })
-      .on('end', async () => {
+    //    parsedData.push(row);
+    //  })
+     // .on('end', async () => {
         // After parsing, you can choose to upload the CSV directly
         // or manipulate the data before uploading
 
         // const fileName = 'your-csv-file.csv';  // Give the file a name when uploading to S3
         await uploadToS3(fileStream, fileName);
-      });
+     // });
   } catch (error) {
     console.error('Error processing CSV file:', error);
   }
