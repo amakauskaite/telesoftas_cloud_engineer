@@ -8,6 +8,8 @@ const s3 = new AWS.S3();
 const BUCKET_NAME = 'auma-spotify'; 
 const ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
 const TRACKS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=tracks.csv';
+const ARTISTS_FILENAME = 'artists.csv'
+const TRACKS_FILENAME = 'tracks.csv'
 
 // Fetch the CSV file from the URL
 async function fetchCSV(url: string): Promise<stream.Readable> {
@@ -35,7 +37,7 @@ async function uploadToS3(fileStream: stream.Readable, fileName: string): Promis
 }
 
 // Process the CSV file and upload to S3
-async function processAndUploadCSV(fileURL: string) {
+async function processAndUploadCSV(fileURL: string, fileName: string) {
   try {
     // Fetch the CSV file stream
     const fileStream = await fetchCSV(fileURL);
@@ -52,7 +54,7 @@ async function processAndUploadCSV(fileURL: string) {
         // After parsing, you can choose to upload the CSV directly
         // or manipulate the data before uploading
 
-        const fileName = 'your-csv-file.csv';  // Give the file a name when uploading to S3
+        // const fileName = 'your-csv-file.csv';  // Give the file a name when uploading to S3
         await uploadToS3(fileStream, fileName);
       });
   } catch (error) {
@@ -60,5 +62,5 @@ async function processAndUploadCSV(fileURL: string) {
   }
 }
 
-processAndUploadCSV(ARTISTS_URL);
-processAndUploadCSV(TRACKS_URL);
+processAndUploadCSV(ARTISTS_URL, ARTISTS_FILENAME);
+processAndUploadCSV(TRACKS_URL, TRACKS_FILENAME);
