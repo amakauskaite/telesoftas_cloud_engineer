@@ -5,8 +5,9 @@ import * as stream from 'stream';
 
 // Initialize AWS S3
 const s3 = new AWS.S3();
-const BUCKET_NAME = 'your-bucket-name';  // Replace with your S3 bucket name
-const FILE_URL = 'https://example.com/path/to/your/csvfile.csv';  // Replace with your CSV file URL
+const BUCKET_NAME = 'auma-spotify'; 
+const ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
+const TRACKS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=tracks.csv';
 
 // Fetch the CSV file from the URL
 async function fetchCSV(url: string): Promise<stream.Readable> {
@@ -34,10 +35,10 @@ async function uploadToS3(fileStream: stream.Readable, fileName: string): Promis
 }
 
 // Process the CSV file and upload to S3
-async function processAndUploadCSV() {
+async function processAndUploadCSV(fileURL: string) {
   try {
     // Fetch the CSV file stream
-    const fileStream = await fetchCSV(FILE_URL);
+    const fileStream = await fetchCSV(fileURL);
     
     // Optionally, you can parse the CSV here if needed
     const parsedData: any[] = [];
@@ -59,4 +60,5 @@ async function processAndUploadCSV() {
   }
 }
 
-processAndUploadCSV();
+processAndUploadCSV(ARTISTS_URL);
+processAndUploadCSV(TRACKS_URL);
