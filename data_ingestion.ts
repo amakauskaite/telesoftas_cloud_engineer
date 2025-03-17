@@ -38,7 +38,7 @@ function filterArtists(data: any[], artists: string[]): any[] {
 }
 
 // Upload CSV file to S3
-async function uploadCsvToS3(fileContent: Buffer, fileName: string, bucketName: string): Promise<void> {
+async function uploadCSVToS3( fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
   const params = {
     Bucket: bucketName,
     Key: fileName,
@@ -54,3 +54,37 @@ async function uploadCsvToS3(fileContent: Buffer, fileName: string, bucketName: 
   }
 }
 
+// TODO: move helper functions to a separate file. Make them reusable, if possible
+// Main function to download, filter, and upload the CSV files
+async function main() {
+  try {
+
+    // Download CSV files
+    const tracks = await downloadCSV(TRACKS_URL);
+    const artists = await downloadCSV(ARTISTS_URL);
+
+    // Filter the first CSV file
+    const filteredTracks = filterTracks(tracks);
+
+    // Extract artist names from the filtered first file
+    const artistsWithTracks = filteredTracks.map((row) => row.artist);
+
+    // Filter the second CSV file based on artists from the filtered first file
+    const filteredArtists = filterArtists(artists, artistsWithTracks);
+
+    // Convert filtered data back to CSV format
+    const filteredTracksCSV = Papa.unparse(filteredTracks);
+    const filteredArtistsCSV = Papa.unparse(filteredArtists);
+
+    // Upload the filtered CSV files to AWS S3
+    await uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME);
+    await uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME);
+
+    console.log('Files uploaded successfully to S3');
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Run the main function
+main();
