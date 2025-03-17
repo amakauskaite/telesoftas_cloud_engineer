@@ -1,23 +1,42 @@
 import axios from 'axios';
 import * as AWS from 'aws-sdk';
-// import * as csvParser from 'csv-parser';
+import * as Papa from 'papaparse';
 import * as stream from 'stream';
 
-// Initialize AWS S3
-const s3 = new AWS.S3();
 const BUCKET_NAME = 'auma-spotify'; 
 const ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
 const TRACKS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=tracks.csv';
 const ARTISTS_FILENAME = 'artists.csv'
 const TRACKS_FILENAME = 'tracks.csv'
 
+// Initialize AWS S3
+// Using an IAM user with AWS Toolkit to store credentials, so they're not being passed here in the constructor
+const s3 = new AWS.S3();
+
+// Helper function to download and parse CSV from URL
+async function downloadCSV(url: string): Promise<any[]> {
+  const response = await axios.get(url);
+  return new Promise((resolve, reject) => {
+    Papa.parse(response.data, {
+      header: true,
+      dynamicTyping: true,
+      complete: (results) => resolve(results.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+// This function returns a stream of data instead of data already parsed into a javascript object
+// Useful for large files, but then should have parsing added as well maybe?
 // Fetch the CSV file from the URL
+/*
 async function fetchCSV(url: string): Promise<stream.Readable> {
   const response = await axios.get(url, {
     responseType: 'stream',
   });
   return response.data;
 }
+  */
 
 // Upload to S3
 async function uploadToS3(fileStream: stream.Readable, fileName: string): Promise<void> {
