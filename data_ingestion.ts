@@ -38,6 +38,17 @@ async function fetchCSV(url: string): Promise<stream.Readable> {
 }
   */
 
+// Filter tracks file
+// Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
+function filterTracks(data: any[]): any[] {
+  return data.filter((row) => row.name !== null && row.duration_ms >= 60000);
+}
+
+// Filter artists file to only have artists with tracks in the filtered tracks file
+function filterArtists(data: any[], artists: string[]): any[] {
+  return data.filter((row) => artists.includes(row.artist));
+}
+
 // Upload to S3
 async function uploadToS3(fileStream: stream.Readable, fileName: string): Promise<void> {
   const params = {
