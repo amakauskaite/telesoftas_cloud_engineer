@@ -49,12 +49,12 @@ function filterArtists(data: any[], artists: string[]): any[] {
   return data.filter((row) => artists.includes(row.artist));
 }
 
-// Upload to S3
-async function uploadToS3(fileStream: stream.Readable, fileName: string): Promise<void> {
+// Upload CSV file to S3
+async function uploadCsvToS3(fileContent: Buffer, fileName: string, bucketName: string): Promise<void> {
   const params = {
-    Bucket: BUCKET_NAME,
+    Bucket: bucketName,
     Key: fileName,
-    Body: fileStream,
+    Body: fileContent,
     ContentType: 'text/csv',
   };
 
