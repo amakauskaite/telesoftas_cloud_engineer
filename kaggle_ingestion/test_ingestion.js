@@ -39,9 +39,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = require("axios");
 var AWS = require("aws-sdk");
 var Papa = require("papaparse");
+var JSZip = require("jszip");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
-var TRACKS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=tracks.csv';
+var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 var ARTISTS_FILENAME = 'artists.csv';
 var TRACKS_FILENAME = 'tracks.csv';
 // Initialize AWS S3
@@ -58,6 +59,39 @@ function downloadCSV(url) {
                     response = _a.sent();
                     return [2 /*return*/, new Promise(function (resolve, reject) {
                             Papa.parse(response.data, {
+                                header: true,
+                                dynamicTyping: true,
+                                complete: function (results) { return resolve(results.data); },
+                                error: function (err) { return reject(err); },
+                            });
+                        })];
+            }
+        });
+    });
+}
+// Helper function to download and parse CSV from a ZIP file
+function downloadAndExtractCSV(url) {
+    return __awaiter(this, void 0, void 0, function () {
+        var response, zip, csvFileName, csvFile, csvData;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, axios_1.default.get(url, { responseType: 'arraybuffer' })];
+                case 1:
+                    response = _a.sent();
+                    return [4 /*yield*/, JSZip.loadAsync(response.data)];
+                case 2:
+                    zip = _a.sent();
+                    csvFileName = Object.keys(zip.files).find(function (fileName) { return fileName.endsWith('.csv'); });
+                    if (!csvFileName) {
+                        throw new Error('No CSV file found in the ZIP archive.');
+                    }
+                    csvFile = zip.files[csvFileName];
+                    return [4 /*yield*/, csvFile.async('text')];
+                case 3:
+                    csvData = _a.sent();
+                    // Parse the CSV content using PapaParse
+                    return [2 /*return*/, new Promise(function (resolve, reject) {
+                            Papa.parse(csvData, {
                                 header: true,
                                 dynamicTyping: true,
                                 complete: function (results) { return resolve(results.data); },
@@ -116,14 +150,14 @@ function main() {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, downloadCSV(TRACKS_URL)];
+                    return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
-                    console.log('Tracks downloaded');
+                    console.log('File downloaded');
                     console.log('Row count:', tracks.length);
                     console.log(tracks[0]);
                     filteredTracks = filterTracks(tracks);
-                    console.log('Tracks filtered');
+                    console.log('File filtered');
                     console.log('Row count:', filteredTracks.length);
                     return [3 /*break*/, 3];
                 case 2:

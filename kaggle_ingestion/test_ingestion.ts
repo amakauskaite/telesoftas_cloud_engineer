@@ -1,11 +1,12 @@
 import axios from 'axios';
 import * as AWS from 'aws-sdk';
 import * as Papa from 'papaparse';
+import * as JSZip from 'jszip';
 
 const BUCKET_NAME = 'auma-spotify'; 
 
 const ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
-const TRACKS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=tracks.csv';
+const TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 const ARTISTS_FILENAME = 'artists.csv'
 const TRACKS_FILENAME = 'tracks.csv'
 
@@ -18,6 +19,35 @@ async function downloadCSV(url: string): Promise<any[]> {
   const response = await axios.get(url);
   return new Promise((resolve, reject) => {
     Papa.parse(response.data, {
+      header: true,
+      dynamicTyping: true,
+      complete: (results) => resolve(results.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+// Helper function to download and parse CSV from a ZIP file
+async function downloadAndExtractCSV(url: string): Promise<any[]> {
+  const response = await axios.get(url, { responseType: 'arraybuffer' }); // Download ZIP as binary
+
+  // Create a new JSZip instance to handle the ZIP file
+  const zip = await JSZip.loadAsync(response.data);
+
+  // Assuming there is only one CSV file inside the ZIP, find the first CSV file
+  const csvFileName = Object.keys(zip.files).find(fileName => fileName.endsWith('.csv'));
+
+  if (!csvFileName) {
+    throw new Error('No CSV file found in the ZIP archive.');
+  }
+
+  // Extract the CSV file content
+  const csvFile = zip.files[csvFileName];
+  const csvData = await csvFile.async('text'); // Get the file content as text
+
+  // Parse the CSV content using PapaParse
+  return new Promise((resolve, reject) => {
+    Papa.parse(csvData, {
       header: true,
       dynamicTyping: true,
       complete: (results) => resolve(results.data),
@@ -60,17 +90,18 @@ async function main() {
   try {
 
     // Download CSV files
-    const tracks = await downloadCSV(TRACKS_URL);
-    console.log('Tracks downloaded');
+    const tracks = await downloadAndExtractCSV(TRACKS_URL);
+    console.log('File downloaded');
     console.log('Row count:', tracks.length)
     console.log(tracks[0])
+    // console.log(tracks[1])
     /*
     const artists = await downloadCSV(ARTISTS_URL);
     */
 
     // Filter the first CSV file
     const filteredTracks = filterTracks(tracks);
-    console.log('Tracks filtered');
+    console.log('File filtered');
     console.log('Row count:', filteredTracks.length)
 
     /*
