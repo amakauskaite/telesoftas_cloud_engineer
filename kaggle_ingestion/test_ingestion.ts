@@ -5,7 +5,7 @@ import * as JSZip from 'jszip';
 
 const BUCKET_NAME = 'auma-spotify'; 
 
-const ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
+const ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 const TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 const ARTISTS_FILENAME = 'artists.csv'
 const TRACKS_FILENAME = 'tracks.csv'
@@ -59,12 +59,14 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
 // Filter tracks file
 // Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
 function filterTracks(data: any[]): any[] {
+  console.log("Null row cnt:", data.filter((row) => row.name === null).length)
+  console.log("Short song row cnt:", data.filter((row) => row.duration_ms < 60000).length)
   return data.filter((row) => row.name !== null && row.duration_ms >= 60000);
 }
 
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(data: any[], artists: string[]): any[] {
-  return data.filter((row) => artists.includes(row.artist));
+  return data.filter((row) => artists.includes(row.name));
 }
 
 // Upload CSV file to S3
@@ -91,27 +93,33 @@ async function main() {
 
     // Download CSV files
     const tracks = await downloadAndExtractCSV(TRACKS_URL);
-    console.log('File downloaded');
+    console.log('1. File downloaded');
     console.log('Row count:', tracks.length)
     console.log(tracks[0])
-    // console.log(tracks[1])
-    /*
-    const artists = await downloadCSV(ARTISTS_URL);
-    */
+
+    const artists = await downloadAndExtractCSV(ARTISTS_URL);
+    console.log('2. File downloaded');
+    console.log('Row count:', tracks.length)
+    console.log(artists[0])
 
     // Filter the first CSV file
     const filteredTracks = filterTracks(tracks);
-    console.log('File filtered');
+    console.log('3. File filtered');
     console.log('Row count:', filteredTracks.length)
 
-    /*
-
     // Extract artist names from the filtered first file
-    const artistsWithTracks = filteredTracks.map((row) => row.artist);
+    const artistsWithTracks = filteredTracks.map((row) => row.name);
+    console.log('4. Artists with tracks taken');
+    console.log('Row count:', artistsWithTracks.length)
+    console.log(artistsWithTracks[0])
 
     // Filter the second CSV file based on artists from the filtered first file
     const filteredArtists = filterArtists(artists, artistsWithTracks);
+    console.log('5. File filtered');
+    console.log('Row count:', filteredArtists.length)
+    console.log(filteredArtists[0], ",",filteredArtists[1],",", filteredArtists[2],",", filteredArtists[3])
 
+     /*
     // Convert filtered data back to CSV format
     const filteredTracksCSV = Papa.unparse(filteredTracks);
     const filteredArtistsCSV = Papa.unparse(filteredArtists);

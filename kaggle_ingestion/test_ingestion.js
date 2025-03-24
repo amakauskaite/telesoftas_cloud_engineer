@@ -41,7 +41,7 @@ var AWS = require("aws-sdk");
 var Papa = require("papaparse");
 var JSZip = require("jszip");
 var BUCKET_NAME = 'auma-spotify';
-var ARTISTS_URL = 'https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks?select=artists.csv';
+var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 var ARTISTS_FILENAME = 'artists.csv';
 var TRACKS_FILENAME = 'tracks.csv';
@@ -105,11 +105,13 @@ function downloadAndExtractCSV(url) {
 // Filter tracks file
 // Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
 function filterTracks(data) {
+    console.log("Null row cnt:", data.filter(function (row) { return row.name === null; }).length);
+    console.log("Short song row cnt:", data.filter(function (row) { return row.duration_ms < 60000; }).length);
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
 }
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(data, artists) {
-    return data.filter(function (row) { return artists.includes(row.artist); });
+    return data.filter(function (row) { return artists.includes(row.name); });
 }
 // Upload CSV file to S3
 function uploadCSVToS3(fileName, fileContent, bucketName) {
@@ -145,26 +147,40 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, filteredTracks, error_2;
+        var tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 3]);
+                    _a.trys.push([0, 3, , 4]);
                     return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
-                    console.log('File downloaded');
+                    console.log('1. File downloaded');
                     console.log('Row count:', tracks.length);
                     console.log(tracks[0]);
-                    filteredTracks = filterTracks(tracks);
-                    console.log('File filtered');
-                    console.log('Row count:', filteredTracks.length);
-                    return [3 /*break*/, 3];
+                    return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
                 case 2:
+                    artists = _a.sent();
+                    console.log('2. File downloaded');
+                    console.log('Row count:', tracks.length);
+                    console.log(artists[0]);
+                    filteredTracks = filterTracks(tracks);
+                    console.log('3. File filtered');
+                    console.log('Row count:', filteredTracks.length);
+                    artistsWithTracks = filteredTracks.map(function (row) { return row.name; });
+                    console.log('4. Artists with tracks taken');
+                    console.log('Row count:', artistsWithTracks.length);
+                    console.log(artistsWithTracks[0]);
+                    filteredArtists = filterArtists(artists, artistsWithTracks);
+                    console.log('5. File filtered');
+                    console.log('Row count:', filteredArtists.length);
+                    console.log(filteredArtists[0], ",", filteredArtists[1], ",", filteredArtists[2], ",", filteredArtists[3]);
+                    return [3 /*break*/, 4];
+                case 3:
                     error_2 = _a.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 3];
-                case 3: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
