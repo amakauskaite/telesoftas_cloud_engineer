@@ -65,11 +65,12 @@ function filterTracks(data: any[]): any[] {
 }
 
 // Filter artists file to only have artists with tracks in the filtered tracks file
-function filterArtists(data: any[], artists: string[]): any[] {
-  console.log(data[0])
-  console.log(artists[0])
-  console.log(data.filter((row) => artists.includes(row.name)).length)
-  return data.filter((row) => artists.includes(row.name));
+function filterArtists(artists: any[], artistsFromTracks: string[]): any[] {
+  // console.log(data[0])
+  console.log("First 5 artists in tracks:", artists[0].name, ", ",artists[1].name,", ", artists[2].name,", ",artists[3].name,", ",artists[4].name)
+  console.log("First 5 artists in artists:", artistsFromTracks[0], ", ",artistsFromTracks[1],", ", artistsFromTracks[2],", ",artistsFromTracks[3],", ",artistsFromTracks[4])
+  // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
+  return artists.filter((artist) => artistsFromTracks.includes(artist.name));
 }
 
 // Upload CSV file to S3
@@ -98,12 +99,12 @@ async function main() {
     const tracks = await downloadAndExtractCSV(TRACKS_URL);
     console.log('1. File downloaded');
     console.log('Row count:', tracks.length)
-    console.log(tracks[0])
+    // console.log(tracks[0])
 
     const artists = await downloadAndExtractCSV(ARTISTS_URL);
     console.log('2. File downloaded');
     console.log('Row count:', tracks.length)
-    console.log(artists[0])
+    // console.log(artists[0])
 
     // Filter the first CSV file
     const filteredTracks = filterTracks(tracks);
@@ -111,13 +112,13 @@ async function main() {
     console.log('Row count:', filteredTracks.length)
 
     // Extract artist names from the filtered first file
-    const artistsWithTracks = filteredTracks.map((row) => row.name);
+    const artistsWithTracks = Array.from(new Set(filteredTracks.flatMap((row) => row.artists)));
     console.log('4. Artists with tracks taken');
     console.log('Row count:', artistsWithTracks.length)
-    console.log(artistsWithTracks[0], ",",artistsWithTracks[1],",", artistsWithTracks[2],",", artistsWithTracks[3])
+    // console.log(artistsWithTracks[0], ",",artistsWithTracks[1],",", artistsWithTracks[2],",", artistsWithTracks[3])
 
     // Filter the second CSV file based on artists from the filtered first file
-    // const filteredArtists = filterArtists(artists, artistsWithTracks);
+    //const filteredArtists = filterArtists(artists, artistsWithTracks);
     //console.log('5. File filtered');
    // console.log('Row count:', filteredArtists.length)
     //console.log(filteredArtists[0])

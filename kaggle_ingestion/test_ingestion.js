@@ -110,11 +110,12 @@ function filterTracks(data) {
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
 }
 // Filter artists file to only have artists with tracks in the filtered tracks file
-function filterArtists(data, artists) {
-    console.log(data[0]);
-    console.log(artists[0]);
-    console.log(data.filter(function (row) { return artists.includes(row.name); }).length);
-    return data.filter(function (row) { return artists.includes(row.name); });
+function filterArtists(artists, artistsFromTracks) {
+    // console.log(data[0])
+    console.log("First 5 artists in tracks:", artists[0].name, ", ", artists[1].name, ", ", artists[2].name, ", ", artists[3].name, ", ", artists[4].name);
+    console.log("First 5 artists in artists:", artistsFromTracks[0], ", ", artistsFromTracks[1], ", ", artistsFromTracks[2], ", ", artistsFromTracks[3], ", ", artistsFromTracks[4]);
+    // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
+    return artists.filter(function (artist) { return artistsFromTracks.includes(artist.name); });
 }
 // Upload CSV file to S3
 function uploadCSVToS3(fileName, fileContent, bucketName) {
@@ -150,7 +151,7 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, error_2;
+        var tracks, artists, filteredTracks, artistsWithTracks, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -160,21 +161,17 @@ function main() {
                     tracks = _a.sent();
                     console.log('1. File downloaded');
                     console.log('Row count:', tracks.length);
-                    console.log(tracks[0]);
                     return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
                 case 2:
                     artists = _a.sent();
                     console.log('2. File downloaded');
                     console.log('Row count:', tracks.length);
-                    console.log(artists[0]);
                     filteredTracks = filterTracks(tracks);
                     console.log('3. File filtered');
                     console.log('Row count:', filteredTracks.length);
-                    artistsWithTracks = filteredTracks.map(function (row) { return row.name; });
+                    artistsWithTracks = Array.from(new Set(filteredTracks.flatMap(function (row) { return row.artists; })));
                     console.log('4. Artists with tracks taken');
                     console.log('Row count:', artistsWithTracks.length);
-                    console.log(artistsWithTracks[0], ",", artistsWithTracks[1], ",", artistsWithTracks[2], ",", artistsWithTracks[3]);
-                    filteredArtists = filterArtists(artists, artistsWithTracks);
                     return [3 /*break*/, 4];
                 case 3:
                     error_2 = _a.sent();
