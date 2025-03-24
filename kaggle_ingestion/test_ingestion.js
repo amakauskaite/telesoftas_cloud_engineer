@@ -111,6 +111,9 @@ function filterTracks(data) {
 }
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(data, artists) {
+    console.log(data[0]);
+    console.log(artists[0]);
+    console.log(data.filter(function (row) { return artists.includes(row.name); }).length);
     return data.filter(function (row) { return artists.includes(row.name); });
 }
 // Upload CSV file to S3
@@ -170,11 +173,8 @@ function main() {
                     artistsWithTracks = filteredTracks.map(function (row) { return row.name; });
                     console.log('4. Artists with tracks taken');
                     console.log('Row count:', artistsWithTracks.length);
-                    console.log(artistsWithTracks[0]);
+                    console.log(artistsWithTracks[0], ",", artistsWithTracks[1], ",", artistsWithTracks[2], ",", artistsWithTracks[3]);
                     filteredArtists = filterArtists(artists, artistsWithTracks);
-                    console.log('5. File filtered');
-                    console.log('Row count:', filteredArtists.length);
-                    console.log(filteredArtists[0], ",", filteredArtists[1], ",", filteredArtists[2], ",", filteredArtists[3]);
                     return [3 /*break*/, 4];
                 case 3:
                     error_2 = _a.sent();

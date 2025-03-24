@@ -66,6 +66,9 @@ function filterTracks(data: any[]): any[] {
 
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(data: any[], artists: string[]): any[] {
+  console.log(data[0])
+  console.log(artists[0])
+  console.log(data.filter((row) => artists.includes(row.name)).length)
   return data.filter((row) => artists.includes(row.name));
 }
 
@@ -111,13 +114,13 @@ async function main() {
     const artistsWithTracks = filteredTracks.map((row) => row.name);
     console.log('4. Artists with tracks taken');
     console.log('Row count:', artistsWithTracks.length)
-    console.log(artistsWithTracks[0])
+    console.log(artistsWithTracks[0], ",",artistsWithTracks[1],",", artistsWithTracks[2],",", artistsWithTracks[3])
 
     // Filter the second CSV file based on artists from the filtered first file
-    const filteredArtists = filterArtists(artists, artistsWithTracks);
-    console.log('5. File filtered');
-    console.log('Row count:', filteredArtists.length)
-    console.log(filteredArtists[0], ",",filteredArtists[1],",", filteredArtists[2],",", filteredArtists[3])
+    // const filteredArtists = filterArtists(artists, artistsWithTracks);
+    //console.log('5. File filtered');
+   // console.log('Row count:', filteredArtists.length)
+    //console.log(filteredArtists[0])
 
      /*
     // Convert filtered data back to CSV format
