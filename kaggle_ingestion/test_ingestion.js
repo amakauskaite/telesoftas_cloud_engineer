@@ -105,8 +105,7 @@ function downloadAndExtractCSV(url) {
 // Filter tracks file
 // Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
 function filterTracks(data) {
-    console.log("Null row cnt:", data.filter(function (row) { return row.name === null; }).length);
-    console.log("Short song row cnt:", data.filter(function (row) { return row.duration_ms < 60000; }).length);
+    console.log("Null row cnt:", data.filter(function (row) { return row.name === null; }).length, "short song row cnt:", data.filter(function (row) { return row.duration_ms < 60000; }).length);
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
 }
 // Filter artists file to only have artists with tracks in the filtered tracks file
@@ -151,33 +150,37 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, artists, filteredTracks, artistsWithTracks, error_2;
+        var tracks, filteredTracks, artistsWithTracks, artistsWithTracksString, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
+                    _a.trys.push([0, 2, , 3]);
                     return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
                     console.log('1. File downloaded');
                     console.log('Row count:', tracks.length);
-                    return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
-                case 2:
-                    artists = _a.sent();
-                    console.log('2. File downloaded');
-                    console.log('Row count:', tracks.length);
                     filteredTracks = filterTracks(tracks);
                     console.log('3. File filtered');
                     console.log('Row count:', filteredTracks.length);
-                    artistsWithTracks = Array.from(new Set(filteredTracks.flatMap(function (row) { return row.artists; })));
+                    artistsWithTracks = Array.from(new Set(filteredTracks.flatMap(function (track) { return track.artists; })));
+                    ;
+                    artistsWithTracksString = artistsWithTracks.map(function (artist) { return artist.toString(); });
+                    ;
                     console.log('4. Artists with tracks taken');
-                    console.log('Row count:', artistsWithTracks.length);
-                    return [3 /*break*/, 4];
-                case 3:
+                    console.log('Row count:', artistsWithTracksString.length);
+                    console.log(artistsWithTracksString[0], ",", artistsWithTracksString[1], ",", artistsWithTracksString[2], ",", artistsWithTracksString[3]);
+                    console.log(artistsWithTracksString[0][0]);
+                    console.log("Is first artist Uli?", artistsWithTracksString[0] === 'Uli');
+                    console.log("Is first artist ['Uli?']", artistsWithTracksString[0] === "['Uli']");
+                    console.log("Is Uli in the array?", artistsWithTracksString.includes('Uli'));
+                    console.log("Does includes work?", artistsWithTracksString.includes(artistsWithTracksString[0]));
+                    return [3 /*break*/, 3];
+                case 2:
                     error_2 = _a.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
             }
         });
     });

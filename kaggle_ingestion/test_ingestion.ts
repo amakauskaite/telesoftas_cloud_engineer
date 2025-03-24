@@ -59,8 +59,7 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
 // Filter tracks file
 // Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
 function filterTracks(data: any[]): any[] {
-  console.log("Null row cnt:", data.filter((row) => row.name === null).length)
-  console.log("Short song row cnt:", data.filter((row) => row.duration_ms < 60000).length)
+  console.log("Null row cnt:", data.filter((row) => row.name === null).length, "short song row cnt:", data.filter((row) => row.duration_ms < 60000).length)
   return data.filter((row) => row.name !== null && row.duration_ms >= 60000);
 }
 
@@ -101,9 +100,9 @@ async function main() {
     console.log('Row count:', tracks.length)
     // console.log(tracks[0])
 
-    const artists = await downloadAndExtractCSV(ARTISTS_URL);
-    console.log('2. File downloaded');
-    console.log('Row count:', tracks.length)
+    //const artists = await downloadAndExtractCSV(ARTISTS_URL);
+    //console.log('2. File downloaded');
+    //console.log('Row count:', tracks.length)
     // console.log(artists[0])
 
     // Filter the first CSV file
@@ -112,15 +111,23 @@ async function main() {
     console.log('Row count:', filteredTracks.length)
 
     // Extract artist names from the filtered first file
-    const artistsWithTracks = Array.from(new Set(filteredTracks.flatMap((row) => row.artists)));
+    const artistsWithTracks = Array.from(new Set(filteredTracks.flatMap(track => track.artists)));;
+    const artistsWithTracksString = artistsWithTracks.map(artist => artist.toString());;
     console.log('4. Artists with tracks taken');
-    console.log('Row count:', artistsWithTracks.length)
-    // console.log(artistsWithTracks[0], ",",artistsWithTracks[1],",", artistsWithTracks[2],",", artistsWithTracks[3])
+    console.log('Row count:', artistsWithTracksString.length)
+    console.log(artistsWithTracksString[0], ",",artistsWithTracksString[1],",", artistsWithTracksString[2],",", artistsWithTracksString[3])
+    console.log(artistsWithTracksString[0][0])
+    console.log("Is first artist Uli?", artistsWithTracksString[0] === 'Uli')
+    console.log("Is first artist ['Uli?']", artistsWithTracksString[0] === "['Uli']")
+    // console.log("Is Uli in the array?", artistsWithTracksString.includes('Uli'))
+    // console.log("Does includes work?", artistsWithTracksString.includes(artistsWithTracksString[0]))
+    // console.log(artistsWithTracks)
+
 
     // Filter the second CSV file based on artists from the filtered first file
-    //const filteredArtists = filterArtists(artists, artistsWithTracks);
+    // const filteredArtists = filterArtists(artists, artistsWithTracks);
     //console.log('5. File filtered');
-   // console.log('Row count:', filteredArtists.length)
+    //console.log('Row count:', filteredArtists.length)
     //console.log(filteredArtists[0])
 
      /*
