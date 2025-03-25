@@ -150,7 +150,7 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, filteredTracks, artistsWithTracks, artistsWithTracksString, error_2;
+        var tracks, filteredTracks, artistsWithTracks, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -163,18 +163,24 @@ function main() {
                     filteredTracks = filterTracks(tracks);
                     console.log('3. File filtered');
                     console.log('Row count:', filteredTracks.length);
-                    artistsWithTracks = Array.from(new Set(filteredTracks.flatMap(function (track) { return track.artists; })));
-                    ;
-                    artistsWithTracksString = artistsWithTracks.map(function (artist) { return artist.toString(); });
-                    ;
-                    console.log('4. Artists with tracks taken');
-                    console.log('Row count:', artistsWithTracksString.length);
-                    console.log(artistsWithTracksString[0], ",", artistsWithTracksString[1], ",", artistsWithTracksString[2], ",", artistsWithTracksString[3]);
-                    console.log(artistsWithTracksString[0][0]);
-                    console.log("Is first artist Uli?", artistsWithTracksString[0] === 'Uli');
-                    console.log("Is first artist ['Uli?']", artistsWithTracksString[0] === "['Uli']");
-                    console.log("Is Uli in the array?", artistsWithTracksString.includes('Uli'));
-                    console.log("Does includes work?", artistsWithTracksString.includes(artistsWithTracksString[0]));
+                    console.log(filteredTracks[0].artists);
+                    console.log(JSON.parse(filteredTracks[0].artists.replace(/'([^']+)'/g, '"$1"')));
+                    console.log(filteredTracks[827].artists);
+                    console.log(JSON.parse(filteredTracks[827].artists.replace(/'([^']+)'/g, '"$1"')));
+                    artistsWithTracks = filteredTracks.map(function (track) {
+                        try {
+                            // Ensure track.artists is a string and replace single quotes with double quotes
+                            return track.artists !== null ? JSON.parse(track.artists.replace(/'([^',]+)'/g, '"$1"')) : null;
+                        }
+                        catch (error) {
+                            // Log the error and the problematic track
+                            console.error("Error parsing artists for track:", track, error);
+                            throw new Error('Parsing failed on first error'); // This will stop further execution
+                            // You can also return an empty array or any fallback value here
+                            // return [];
+                        }
+                    });
+                    console.log(artistsWithTracks[0], ",", artistsWithTracks[827]);
                     return [3 /*break*/, 3];
                 case 2:
                     error_2 = _a.sent();

@@ -109,16 +109,44 @@ async function main() {
     const filteredTracks = filterTracks(tracks);
     console.log('3. File filtered');
     console.log('Row count:', filteredTracks.length)
+    console.log(filteredTracks[0].artists)
+    console.log(JSON.parse(filteredTracks[0].artists.replace(/'([^']+)'/g, '"$1"')))
+    console.log(filteredTracks[827].artists)
+    console.log(JSON.parse(filteredTracks[827].artists.replace(/'([^']+)'/g, '"$1"')))
+    /*
+    console.log(filteredTracks[0])
+    console.log(typeof filteredTracks[0].artists)
+    console.log(filteredTracks[827])
+    console.log(typeof filteredTracks[827].artists)
+    */
+    // console.log(filteredTracks[827].artists)
+
 
     // Extract artist names from the filtered first file
-    const artistsWithTracks = Array.from(new Set(filteredTracks.flatMap(track => track.artists)));;
-    const artistsWithTracksString = artistsWithTracks.map(artist => artist.toString());;
+      // const artistsWithTracks = filteredTracks.map(track => track.artists!== null ? JSON.parse(track.artists.replace(/'([^']+)'/g, '"$1"')));
+      const artistsWithTracks = filteredTracks.map(track => {
+        try {
+          // Ensure track.artists is a string and replace single quotes with double quotes
+          return  track.artists!== null ? JSON.parse(track.artists.replace(/'([^',]+)'/g, '"$1"')) : null;
+        } catch (error) {
+          // Log the error and the problematic track
+          console.error("Error parsing artists for track:", track, error);
+          throw new Error('Parsing failed on first error'); // This will stop further execution
+          // You can also return an empty array or any fallback value here
+          // return [];
+        }
+      });
+      console.log(artistsWithTracks[0], ",",artistsWithTracks[827]);
+    
+    /*
+    const artistsWithTracks = Array.from(new Set(
+      filteredTracks.flatMap(track =>  JSON.parse(track.artists.replace(/'([^']+)'/g, '"$1"')))));
     console.log('4. Artists with tracks taken');
-    console.log('Row count:', artistsWithTracksString.length)
-    console.log(artistsWithTracksString[0], ",",artistsWithTracksString[1],",", artistsWithTracksString[2],",", artistsWithTracksString[3])
-    console.log(artistsWithTracksString[0][0])
-    console.log("Is first artist Uli?", artistsWithTracksString[0] === 'Uli')
-    console.log("Is first artist ['Uli?']", artistsWithTracksString[0] === "['Uli']")
+    console.log('Row count:', artistsWithTracks.length)
+    console.log(artistsWithTracks[0], ",",artistsWithTracks[827])
+    console.log("Is first artist Uli?", artistsWithTracks[0] === 'Uli')
+    console.log("Is first artist ['Uli?']", artistsWithTracks[0] === "['Uli']")
+    */
     // console.log("Is Uli in the array?", artistsWithTracksString.includes('Uli'))
     // console.log("Does includes work?", artistsWithTracksString.includes(artistsWithTracksString[0]))
     // console.log(artistsWithTracks)
