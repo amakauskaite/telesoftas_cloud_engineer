@@ -16,19 +16,15 @@ function parseCSVFileFromPath(filePath) {
                 transform: function (value, field) {
                     if (field === 'artists') {
                         try {
-                            var cleanedValue = JSON.parse(JSON.stringify(value.replace(/[\[\]]/g, '')));
-                            var artistsArray = cleanedValue.match(/'[^']+'|"[^"]+"|[^,]+/g).map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); });
-                            // .replace(/^.(.*).$/, '$1')
-                            // .replace(/\\"/g, '\\\\"')
-                            // .replace(/'([^']+)'/g, '"$1"')
-                            //;   // Replace single quotes around array elements with double quotes
-                            // Now, safely parse the value
+                            // Clean value by removing square brackets
+                            var cleanedValue = value.replace(/[\[\]]/g, '');
+                            // Match all quoted strings and non-quoted parts, split by commas outside quotes
+                            var artistsArray = cleanedValue.match(/'[^']*'|"[^"]*"|[^,]+/g)
+                                .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); }); // Remove surrounding quotes and trim spaces
                             console.log("Original value: <", JSON.stringify(value), ">");
-                            console.log("Cleaned value: <", JSON.stringify(value), ">");
+                            console.log("Cleaned value: <", JSON.stringify(cleanedValue), ">");
                             console.log("Array value: <", JSON.stringify(artistsArray), ">");
-                            // console.log("Cleaned value interim: <",JSON.stringify(cleanedValue0),">")
-                            // console.log("Cleaned value final: <",JSON.stringify(value.replace(/[\[\]]/g,'')),">")
-                            return artistsArray; // Converts stringified arrays into actual arrays
+                            return artistsArray; // Return as an array
                         }
                         catch (e) {
                             console.error('Parsing error for value:', JSON.stringify(value), e);
@@ -38,7 +34,6 @@ function parseCSVFileFromPath(filePath) {
                     return value; // Leave other fields unchanged
                 },
                 complete: function (result) {
-                    // console.log(result.data); // Your parsed CSV data
                     resolve(result.data); // Resolving the promise with parsed data
                 },
                 error: function (error) {
@@ -53,7 +48,6 @@ var filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_cloud_
 parseCSVFileFromPath(filePath)
     .then(function (data) {
     console.log('Parsed CSV data:', data);
-    console.log(data[0].artists[0]);
 })
     .catch(function (error) {
     console.error(error);

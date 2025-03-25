@@ -15,16 +15,19 @@ function parseCSVFileFromPath(filePath: string): Promise<any[]> {
         dynamicTyping: true, // Automatically convert values like numbers
         transform: (value, field) => {
           if (field === 'artists') {
-            try {                
-                const cleanedValue = JSON.parse(JSON.stringify(value.replace(/[\[\]]/g,'')));
-                let artistsArray = cleanedValue.match(/'[^']+'|"[^"]+"|[^,]+/g).map(item => item.trim().replace(/^['"]|['"]$/g, ''));
+            try {
+              // Clean value by removing square brackets
+              const cleanedValue = value.replace(/[\[\]]/g, '');
 
-              console.log("Original value: <",JSON.stringify(value),">")
-              console.log("Cleaned value: <",JSON.stringify(value),">")
-              console.log("Array value: <",JSON.stringify(artistsArray),">")
-              // console.log("Cleaned value interim: <",JSON.stringify(cleanedValue0),">")
-              // console.log("Cleaned value final: <",JSON.stringify(value.replace(/[\[\]]/g,'')),">")
-              return artistsArray; // Converts stringified arrays into actual arrays
+              // Match all quoted strings and non-quoted parts, split by commas outside quotes
+              let artistsArray = cleanedValue.match(/'[^']*'|"[^"]*"|[^,]+/g)
+                .map(item => item.trim().replace(/^['"]|['"]$/g, '')); // Remove surrounding quotes and trim spaces
+
+              console.log("Original value: <", JSON.stringify(value), ">");
+              console.log("Cleaned value: <", JSON.stringify(cleanedValue), ">");
+              console.log("Array value: <", JSON.stringify(artistsArray), ">");
+
+              return artistsArray; // Return as an array
             } catch (e) {
               console.error('Parsing error for value:', JSON.stringify(value), e);
               return value; // If it fails, return the original value (can handle cases where it's not a valid array string)
@@ -33,7 +36,6 @@ function parseCSVFileFromPath(filePath: string): Promise<any[]> {
           return value; // Leave other fields unchanged
         },
         complete: (result) => {
-          // console.log(result.data); // Your parsed CSV data
           resolve(result.data); // Resolving the promise with parsed data
         },
         error: (error) => {
@@ -50,7 +52,6 @@ const filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_clou
 parseCSVFileFromPath(filePath)
   .then((data) => {
     console.log('Parsed CSV data:', data);
-    console.log(data[0].artists[0])
   })
   .catch((error) => {
     console.error(error);
