@@ -48,11 +48,41 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
   // Parse the CSV content using PapaParse
   return new Promise((resolve, reject) => {
     Papa.parse(csvData, {
-      header: true,
-      dynamicTyping: true,
-      complete: (results) => resolve(results.data),
-      error: (err) => reject(err),
-    });
+            header: true,
+            dynamicTyping: true, // Automatically convert values like numbers
+            transform: (value, field) => {
+              if (field === 'artists') {
+                try {
+                  // Step 1: Remove square brackets
+                  const valueWithoutBrackets = value.replace(/[\[\]]/g, '');
+    
+                  // Step 2: Escape commas inside quoted strings by replacing with a placeholder
+                  const valueWithEscapedCommas = valueWithoutBrackets.replace(/"([^"]*)"/g, (match) => {
+                    return match.replace(/,/g, '\\comma\\');
+                  });
+    
+                  // Step 3: Match all quoted strings and non-quoted parts, split by commas outside quotes
+                  let artistsArray = valueWithEscapedCommas.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
+                    .map(item => item.trim().replace(/^['"]|['"]$/g, '')); // Remove surrounding quotes and trim spaces
+    
+                  // Step 4: Revert the escaped commas back to real commas
+                  artistsArray = artistsArray.map(item => item.replace(/\\comma\\/g, ','));
+    
+                  return artistsArray; // Return as an array
+                } catch (e) {
+                  console.error('Parsing error for value:', JSON.stringify(value), e);
+                  return value; // If it fails, return the original value (can handle cases where it's not a valid array string)
+                }
+              }
+              return value; // Leave other fields unchanged
+            },
+            complete: (result) => {
+              resolve(result.data); // Resolving the promise with parsed data
+            },
+            error: (error) => {
+              reject(`Error parsing CSV: ${error.message}`);
+            },
+          });
   });
 }
 
@@ -64,12 +94,18 @@ function filterTracks(data: any[]): any[] {
 }
 
 // Filter artists file to only have artists with tracks in the filtered tracks file
-function filterArtists(artists: any[], artistsFromTracks: string[]): any[] {
+function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
   // console.log(data[0])
-  console.log("First 5 artists in tracks:", artists[0].name, ", ",artists[1].name,", ", artists[2].name,", ",artists[3].name,", ",artists[4].name)
-  console.log("First 5 artists in artists:", artistsFromTracks[0], ", ",artistsFromTracks[1],", ", artistsFromTracks[2],", ",artistsFromTracks[3],", ",artistsFromTracks[4])
+  // console.log("First 5 artists in tracks:", artists[0].name, ", ",artists[1].name,", ", artists[2].name,", ",artists[3].name,", ",artists[4].name)
+  // console.log("First 5 artists in artists:", artistsFromTracks[0], ", ",artistsFromTracks[1],", ", artistsFromTracks[2],", ",artistsFromTracks[3],", ",artistsFromTracks[4])
   // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
-  return artists.filter((artist) => artistsFromTracks.includes(artist.name));
+  try {
+    return artists.filter((artist) => artistsFromTracks.has(artist.name)); 
+  } catch (error) {
+    console.error('Error:', error);
+    return artists;
+  }
+  
 }
 
 // Upload CSV file to S3
@@ -97,66 +133,33 @@ async function main() {
     // Download CSV files
     const tracks = await downloadAndExtractCSV(TRACKS_URL);
     console.log('1. File downloaded');
-    console.log('Row count:', tracks.length)
+    console.log('Row count:', tracks.length);
     // console.log(tracks[0])
 
-    //const artists = await downloadAndExtractCSV(ARTISTS_URL);
-    //console.log('2. File downloaded');
-    //console.log('Row count:', tracks.length)
+    const artists = await downloadAndExtractCSV(ARTISTS_URL);
+    console.log('2. File downloaded');
+    console.log('Row count:', tracks.length);
     // console.log(artists[0])
 
     // Filter the first CSV file
     const filteredTracks = filterTracks(tracks);
     console.log('3. File filtered');
-    console.log('Row count:', filteredTracks.length)
-    console.log(filteredTracks[0].artists)
-    console.log(JSON.parse(filteredTracks[0].artists.replace(/'([^']+)'/g, '"$1"')))
-    console.log(filteredTracks[827].artists)
-    console.log(JSON.parse(filteredTracks[827].artists.replace(/'([^']+)'/g, '"$1"')))
-    /*
-    console.log(filteredTracks[0])
-    console.log(typeof filteredTracks[0].artists)
-    console.log(filteredTracks[827])
-    console.log(typeof filteredTracks[827].artists)
-    */
-    // console.log(filteredTracks[827].artists)
+    console.log('Row count:', filteredTracks.length);
+    console.log(filteredTracks[0].artists);
+    console.log(filteredTracks[827].artists);
 
-
-    // Extract artist names from the filtered first file
-      // const artistsWithTracks = filteredTracks.map(track => track.artists!== null ? JSON.parse(track.artists.replace(/'([^']+)'/g, '"$1"')));
-      const artistsWithTracks = filteredTracks.map(track => {
-        try {
-          // Ensure track.artists is a string and replace single quotes with double quotes
-          return  track.artists!== null ? JSON.parse(track.artists.replace(/'([^',]+)'/g, '"$1"')) : null;
-        } catch (error) {
-          // Log the error and the problematic track
-          console.error("Error parsing artists for track:", track, error);
-          throw new Error('Parsing failed on first error'); // This will stop further execution
-          // You can also return an empty array or any fallback value here
-          // return [];
-        }
-      });
-      console.log(artistsWithTracks[0], ",",artistsWithTracks[827]);
-    
-    /*
-    const artistsWithTracks = Array.from(new Set(
-      filteredTracks.flatMap(track =>  JSON.parse(track.artists.replace(/'([^']+)'/g, '"$1"')))));
+    const artistsWithTracks = new Set(filteredTracks.flatMap(track => track.artists));
     console.log('4. Artists with tracks taken');
-    console.log('Row count:', artistsWithTracks.length)
-    console.log(artistsWithTracks[0], ",",artistsWithTracks[827])
-    console.log("Is first artist Uli?", artistsWithTracks[0] === 'Uli')
-    console.log("Is first artist ['Uli?']", artistsWithTracks[0] === "['Uli']")
-    */
-    // console.log("Is Uli in the array?", artistsWithTracksString.includes('Uli'))
-    // console.log("Does includes work?", artistsWithTracksString.includes(artistsWithTracksString[0]))
-    // console.log(artistsWithTracks)
+    console.log('Row count:', artistsWithTracks.values.length);
+    // console.log("Is first artist Uli?", artistsWithTracks[0] === 'Uli')
+    // console.log(artistsWithTracks[827]);
 
 
     // Filter the second CSV file based on artists from the filtered first file
-    // const filteredArtists = filterArtists(artists, artistsWithTracks);
-    //console.log('5. File filtered');
-    //console.log('Row count:', filteredArtists.length)
-    //console.log(filteredArtists[0])
+    const filteredArtists = filterArtists(artists, artistsWithTracks);
+    console.log('5. File filtered');
+    console.log('Row count:', filteredArtists.length)
+    console.log(filteredArtists[0])
 
      /*
     // Convert filtered data back to CSV format

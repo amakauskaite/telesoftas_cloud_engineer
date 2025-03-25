@@ -93,9 +93,36 @@ function downloadAndExtractCSV(url) {
                     return [2 /*return*/, new Promise(function (resolve, reject) {
                             Papa.parse(csvData, {
                                 header: true,
-                                dynamicTyping: true,
-                                complete: function (results) { return resolve(results.data); },
-                                error: function (err) { return reject(err); },
+                                dynamicTyping: true, // Automatically convert values like numbers
+                                transform: function (value, field) {
+                                    if (field === 'artists') {
+                                        try {
+                                            // Step 1: Remove square brackets
+                                            var valueWithoutBrackets = value.replace(/[\[\]]/g, '');
+                                            // Step 2: Escape commas inside quoted strings by replacing with a placeholder
+                                            var valueWithEscapedCommas = valueWithoutBrackets.replace(/"([^"]*)"/g, function (match) {
+                                                return match.replace(/,/g, '\\comma\\');
+                                            });
+                                            // Step 3: Match all quoted strings and non-quoted parts, split by commas outside quotes
+                                            var artistsArray = valueWithEscapedCommas.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
+                                                .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); }); // Remove surrounding quotes and trim spaces
+                                            // Step 4: Revert the escaped commas back to real commas
+                                            artistsArray = artistsArray.map(function (item) { return item.replace(/\\comma\\/g, ','); });
+                                            return artistsArray; // Return as an array
+                                        }
+                                        catch (e) {
+                                            console.error('Parsing error for value:', JSON.stringify(value), e);
+                                            return value; // If it fails, return the original value (can handle cases where it's not a valid array string)
+                                        }
+                                    }
+                                    return value; // Leave other fields unchanged
+                                },
+                                complete: function (result) {
+                                    resolve(result.data); // Resolving the promise with parsed data
+                                },
+                                error: function (error) {
+                                    reject("Error parsing CSV: ".concat(error.message));
+                                },
                             });
                         })];
             }
@@ -111,10 +138,16 @@ function filterTracks(data) {
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(artists, artistsFromTracks) {
     // console.log(data[0])
-    console.log("First 5 artists in tracks:", artists[0].name, ", ", artists[1].name, ", ", artists[2].name, ", ", artists[3].name, ", ", artists[4].name);
-    console.log("First 5 artists in artists:", artistsFromTracks[0], ", ", artistsFromTracks[1], ", ", artistsFromTracks[2], ", ", artistsFromTracks[3], ", ", artistsFromTracks[4]);
+    // console.log("First 5 artists in tracks:", artists[0].name, ", ",artists[1].name,", ", artists[2].name,", ",artists[3].name,", ",artists[4].name)
+    // console.log("First 5 artists in artists:", artistsFromTracks[0], ", ",artistsFromTracks[1],", ", artistsFromTracks[2],", ",artistsFromTracks[3],", ",artistsFromTracks[4])
     // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
-    return artists.filter(function (artist) { return artistsFromTracks.includes(artist.name); });
+    try {
+        return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
+    }
+    catch (error) {
+        console.error('Error:', error);
+        return artists;
+    }
 }
 // Upload CSV file to S3
 function uploadCSVToS3(fileName, fileContent, bucketName) {
@@ -150,43 +183,39 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, filteredTracks, artistsWithTracks, error_2;
+        var tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 3]);
+                    _a.trys.push([0, 3, , 4]);
                     return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
                     console.log('1. File downloaded');
                     console.log('Row count:', tracks.length);
+                    return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
+                case 2:
+                    artists = _a.sent();
+                    console.log('2. File downloaded');
+                    console.log('Row count:', tracks.length);
                     filteredTracks = filterTracks(tracks);
                     console.log('3. File filtered');
                     console.log('Row count:', filteredTracks.length);
                     console.log(filteredTracks[0].artists);
-                    console.log(JSON.parse(filteredTracks[0].artists.replace(/'([^']+)'/g, '"$1"')));
                     console.log(filteredTracks[827].artists);
-                    console.log(JSON.parse(filteredTracks[827].artists.replace(/'([^']+)'/g, '"$1"')));
-                    artistsWithTracks = filteredTracks.map(function (track) {
-                        try {
-                            // Ensure track.artists is a string and replace single quotes with double quotes
-                            return track.artists !== null ? JSON.parse(track.artists.replace(/'([^',]+)'/g, '"$1"')) : null;
-                        }
-                        catch (error) {
-                            // Log the error and the problematic track
-                            console.error("Error parsing artists for track:", track, error);
-                            throw new Error('Parsing failed on first error'); // This will stop further execution
-                            // You can also return an empty array or any fallback value here
-                            // return [];
-                        }
-                    });
-                    console.log(artistsWithTracks[0], ",", artistsWithTracks[827]);
-                    return [3 /*break*/, 3];
-                case 2:
+                    artistsWithTracks = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
+                    console.log('4. Artists with tracks taken');
+                    console.log('Row count:', artistsWithTracks.values.length);
+                    filteredArtists = filterArtists(artists, artistsWithTracks);
+                    console.log('5. File filtered');
+                    console.log('Row count:', filteredArtists.length);
+                    console.log(filteredArtists[0]);
+                    return [3 /*break*/, 4];
+                case 3:
                     error_2 = _a.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 3];
-                case 3: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
