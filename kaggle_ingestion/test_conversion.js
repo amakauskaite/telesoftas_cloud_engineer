@@ -16,13 +16,19 @@ function parseCSVFileFromPath(filePath) {
                 transform: function (value, field) {
                     if (field === 'artists') {
                         try {
-                            // Clean value by removing square brackets
-                            var cleanedValue = value.replace(/[\[\]]/g, '');
-                            // Match all quoted strings and non-quoted parts, split by commas outside quotes
-                            var artistsArray = cleanedValue.match(/'[^']*'|"[^"]*"|[^,]+/g)
+                            // Step 1: Remove square brackets
+                            var valueWithoutBrackets = value.replace(/[\[\]]/g, '');
+                            // Step 2: Escape commas inside quoted strings by replacing with a placeholder
+                            var valueWithEscapedCommas = valueWithoutBrackets.replace(/"([^"]*)"/g, function (match) {
+                                return match.replace(/,/g, '\\comma\\');
+                            });
+                            // Step 3: Match all quoted strings and non-quoted parts, split by commas outside quotes
+                            var artistsArray = valueWithEscapedCommas.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
                                 .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); }); // Remove surrounding quotes and trim spaces
+                            // Step 4: Revert the escaped commas back to real commas
+                            artistsArray = artistsArray.map(function (item) { return item.replace(/\\comma\\/g, ','); });
                             console.log("Original value: <", JSON.stringify(value), ">");
-                            console.log("Cleaned value: <", JSON.stringify(cleanedValue), ">");
+                            console.log("Escaped value: <", JSON.stringify(valueWithEscapedCommas), ">");
                             console.log("Array value: <", JSON.stringify(artistsArray), ">");
                             return artistsArray; // Return as an array
                         }
@@ -48,6 +54,7 @@ var filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_cloud_
 parseCSVFileFromPath(filePath)
     .then(function (data) {
     console.log('Parsed CSV data:', data);
+    console.log(data[0].artists[0]);
 })
     .catch(function (error) {
     console.error(error);

@@ -16,15 +16,23 @@ function parseCSVFileFromPath(filePath: string): Promise<any[]> {
         transform: (value, field) => {
           if (field === 'artists') {
             try {
-              // Clean value by removing square brackets
-              const cleanedValue = value.replace(/[\[\]]/g, '');
+              // Step 1: Remove square brackets
+              const valueWithoutBrackets = value.replace(/[\[\]]/g, '');
 
-              // Match all quoted strings and non-quoted parts, split by commas outside quotes
-              let artistsArray = cleanedValue.match(/'[^']*'|"[^"]*"|[^,]+/g)
+              // Step 2: Escape commas inside quoted strings by replacing with a placeholder
+              const valueWithEscapedCommas = valueWithoutBrackets.replace(/"([^"]*)"/g, (match) => {
+                return match.replace(/,/g, '\\comma\\');
+              });
+
+              // Step 3: Match all quoted strings and non-quoted parts, split by commas outside quotes
+              let artistsArray = valueWithEscapedCommas.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
                 .map(item => item.trim().replace(/^['"]|['"]$/g, '')); // Remove surrounding quotes and trim spaces
 
+              // Step 4: Revert the escaped commas back to real commas
+              artistsArray = artistsArray.map(item => item.replace(/\\comma\\/g, ','));
+
               console.log("Original value: <", JSON.stringify(value), ">");
-              console.log("Cleaned value: <", JSON.stringify(cleanedValue), ">");
+              console.log("Escaped value: <", JSON.stringify(valueWithEscapedCommas), ">");
               console.log("Array value: <", JSON.stringify(artistsArray), ">");
 
               return artistsArray; // Return as an array
@@ -52,6 +60,7 @@ const filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_clou
 parseCSVFileFromPath(filePath)
   .then((data) => {
     console.log('Parsed CSV data:', data);
+    console.log(data[0].artists[0]);
   })
   .catch((error) => {
     console.error(error);
