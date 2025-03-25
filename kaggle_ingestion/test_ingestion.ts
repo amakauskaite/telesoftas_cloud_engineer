@@ -135,15 +135,15 @@ async function main() {
 
     const artists = await downloadAndExtractCSV(ARTISTS_URL);
     console.log('2. File downloaded');
-    console.log('Row count:', tracks.length);
+    console.log('Row count:', artists.length);
     // console.log(artists[0])
 
     // Filter the first CSV file
     const filteredTracks = filterTracks(tracks);
     console.log('3. File filtered');
     console.log('Row count:', filteredTracks.length);
-    console.log(filteredTracks[0].artists);
-    console.log(filteredTracks[827].artists);
+    // console.log(filteredTracks[0].artists);
+    // console.log(filteredTracks[827].artists);
 
     const artistsWithTracks = new Set(filteredTracks.flatMap(track => track.artists));
     console.log('4. Artists with tracks taken');
@@ -158,7 +158,7 @@ async function main() {
     console.log('Row count:', filteredArtists.length)
     // console.log(filteredArtists[0])
 
-     
+    /*
     // Convert filtered data back to CSV format
     const filteredTracksCSV = Papa.unparse(filteredTracks);
     console.log('6. tracks converted to csv');
@@ -173,6 +173,7 @@ async function main() {
     await uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME);
 
     console.log('Files uploaded successfully to S3');
+    */
   } catch (error) {
     console.error('Error:', error);
   }
