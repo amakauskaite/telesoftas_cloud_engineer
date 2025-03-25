@@ -137,9 +137,6 @@ function filterTracks(data) {
 }
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(artists, artistsFromTracks) {
-    // console.log(data[0])
-    // console.log("First 5 artists in tracks:", artists[0].name, ", ",artists[1].name,", ", artists[2].name,", ",artists[3].name,", ",artists[4].name)
-    // console.log("First 5 artists in artists:", artistsFromTracks[0], ", ",artistsFromTracks[1],", ", artistsFromTracks[2],", ",artistsFromTracks[3],", ",artistsFromTracks[4])
     // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
     try {
         return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
@@ -183,11 +180,11 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, error_2;
+        var tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, filteredTracksCSV, filteredArtistsCSV, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
+                    _a.trys.push([0, 5, , 6]);
                     return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
@@ -209,13 +206,27 @@ function main() {
                     filteredArtists = filterArtists(artists, artistsWithTracks);
                     console.log('5. File filtered');
                     console.log('Row count:', filteredArtists.length);
-                    console.log(filteredArtists[0]);
-                    return [3 /*break*/, 4];
+                    filteredTracksCSV = Papa.unparse(filteredTracks);
+                    console.log('6. tracks converted to csv');
+                    console.log(filteredTracksCSV[0]);
+                    filteredArtistsCSV = Papa.unparse(filteredArtists);
+                    console.log('7. artists converted to csv');
+                    console.log(filteredArtistsCSV[0]);
+                    // Upload the filtered CSV files to AWS S3
+                    return [4 /*yield*/, uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME)];
                 case 3:
+                    // Upload the filtered CSV files to AWS S3
+                    _a.sent();
+                    return [4 /*yield*/, uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME)];
+                case 4:
+                    _a.sent();
+                    console.log('Files uploaded successfully to S3');
+                    return [3 /*break*/, 6];
+                case 5:
                     error_2 = _a.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 6];
+                case 6: return [2 /*return*/];
             }
         });
     });

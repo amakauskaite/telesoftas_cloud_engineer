@@ -95,9 +95,6 @@ function filterTracks(data: any[]): any[] {
 
 // Filter artists file to only have artists with tracks in the filtered tracks file
 function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
-  // console.log(data[0])
-  // console.log("First 5 artists in tracks:", artists[0].name, ", ",artists[1].name,", ", artists[2].name,", ",artists[3].name,", ",artists[4].name)
-  // console.log("First 5 artists in artists:", artistsFromTracks[0], ", ",artistsFromTracks[1],", ", artistsFromTracks[2],", ",artistsFromTracks[3],", ",artistsFromTracks[4])
   // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
   try {
     return artists.filter((artist) => artistsFromTracks.has(artist.name)); 
@@ -159,19 +156,23 @@ async function main() {
     const filteredArtists = filterArtists(artists, artistsWithTracks);
     console.log('5. File filtered');
     console.log('Row count:', filteredArtists.length)
-    console.log(filteredArtists[0])
+    // console.log(filteredArtists[0])
 
-     /*
+     
     // Convert filtered data back to CSV format
     const filteredTracksCSV = Papa.unparse(filteredTracks);
+    console.log('6. tracks converted to csv');
+    console.log(filteredTracksCSV[0])
+
     const filteredArtistsCSV = Papa.unparse(filteredArtists);
+    console.log('7. artists converted to csv');
+    console.log(filteredArtistsCSV[0])
 
     // Upload the filtered CSV files to AWS S3
     await uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME);
     await uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME);
 
     console.log('Files uploaded successfully to S3');
-    */
   } catch (error) {
     console.error('Error:', error);
   }
