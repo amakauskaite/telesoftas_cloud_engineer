@@ -54,33 +54,16 @@ var JSZip = require("jszip");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
-var ARTISTS_FILENAME = 'artists.csv';
-var TRACKS_FILENAME = 'tracks.csv';
+var ARTISTS_FILENAME = 'artists.json';
+var TRACKS_FILENAME = 'tracks.json';
 // Initialize AWS S3 Client (v3)
 var s3 = new client_s3_1.S3Client({
-    region: 'eu-north-1', // Replace with the appropriate region
+    region: 'eu-north-1',
+    credentials: {
+        accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
+        secretAccessKey: 'dkY1zimmF0Nl34hC8aBzEL46R8DY4Bk6zddZCNhE',
+    },
 });
-// Helper function to download and parse CSV from URL
-function downloadAndParseCSV(url) {
-    return __awaiter(this, void 0, void 0, function () {
-        var response;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, axios_1.default.get(url)];
-                case 1:
-                    response = _a.sent();
-                    return [2 /*return*/, new Promise(function (resolve, reject) {
-                            Papa.parse(response.data, {
-                                header: true,
-                                dynamicTyping: true,
-                                complete: function (result) { return resolve(result.data); },
-                                error: function (error) { return reject("Error parsing CSV: ".concat(error.message)); },
-                            });
-                        })];
-            }
-        });
-    });
-}
 // Helper function to download and extract CSV from ZIP file
 function downloadAndExtractCSV(url) {
     return __awaiter(this, void 0, void 0, function () {
@@ -190,6 +173,29 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
         });
     });
 }
+function uploadJSONToS3(fileName, fileContent, bucketName) {
+    return __awaiter(this, void 0, void 0, function () {
+        var jsonData, params, command;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    jsonData = JSON.stringify(fileContent);
+                    params = {
+                        Bucket: bucketName,
+                        Key: fileName,
+                        Body: jsonData,
+                        ContentType: 'application/json', // Set content type to JSON
+                    };
+                    command = new client_s3_1.PutObjectCommand(params);
+                    return [4 /*yield*/, s3.send(command)];
+                case 1:
+                    _a.sent();
+                    console.log("Successfully uploaded ".concat(fileName, " to S3"));
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
@@ -210,13 +216,12 @@ function main() {
                     console.log('Date fields exploded in tracks');
                     // Upload the filtered CSV files to AWS S3
                     return [4 /*yield*/, Promise.all([
-                            uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracks), BUCKET_NAME),
+                            uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME),
                             // uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
                         ])];
                 case 2:
                     // Upload the filtered CSV files to AWS S3
                     _a.sent();
-                    console.log('Files uploaded successfully to S3');
                     return [3 /*break*/, 4];
                 case 3:
                     error_2 = _a.sent();
