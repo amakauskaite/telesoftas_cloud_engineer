@@ -97,36 +97,31 @@ function explodeDateFieldsInJson(json: any[], dateFieldName: string): any[] {
   });
 }
 
-// Upload CSV file to S3 (v3)
-async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
-  const params = {
-    Bucket: bucketName,
-    Key: fileName,
-    Body: fileContent,
-    ContentType: 'text/csv',
-  };
+// Custom Readable stream
+class JSONReadableStream extends stream.Readable {
+  private data: any[];
+  private jsonStream: JSONStream.Enumerator;
 
-  try {
-    const command = new PutObjectCommand(params);  // Using PutObjectCommand from AWS SDK v3
-    await s3.send(command);  // Using the send() method to execute the command
-    console.log(`Successfully uploaded ${fileName} to S3`);
-  } catch (error) {
-    console.error('Error uploading file to S3:', error);
+  constructor(data: any[]) {
+    super();
+    this.data = data;
+    this.jsonStream = JSONStream.stringify();
   }
-}
 
-// Create a readable stream from JSON data
-function createJSONStream(data: any[]): stream.Readable {
-  const jsonStream = JSONStream.stringify();
-  data.forEach(item => jsonStream.write(item));
-  jsonStream.end();  // Properly end the stream
-  
-  return jsonStream;
+  _read() {
+    // Write the data into the JSON stream
+    this.data.forEach((item) => this.jsonStream.write(item));
+    this.jsonStream.end();
+    // Once the data is written, we push it to the readable stream
+    this.jsonStream.on('data', (chunk) => this.push(chunk));
+    this.jsonStream.on('end', () => this.push(null));
+  }
 }
 
 // Function to upload JSON in chunks
 async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: string) {
-  const dataStream = createJSONStream(fileContent);  // Create a stream from the content
+  // Create the custom stream
+  const dataStream = new JSONReadableStream(fileContent);
 
   const params = {
     Bucket: bucketName,

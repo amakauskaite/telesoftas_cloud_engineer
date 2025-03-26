@@ -1,4 +1,19 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -52,6 +67,7 @@ var client_s3_1 = require("@aws-sdk/client-s3");
 var lib_storage_1 = require("@aws-sdk/lib-storage");
 var Papa = require("papaparse");
 var JSZip = require("jszip");
+var stream = require("stream");
 var JSONStream = require("JSONStream");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
@@ -144,44 +160,26 @@ function explodeDateFieldsInJson(json, dateFieldName) {
         return updatedItem;
     });
 }
-// Upload CSV file to S3 (v3)
-function uploadCSVToS3(fileName, fileContent, bucketName) {
-    return __awaiter(this, void 0, void 0, function () {
-        var params, command, error_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    params = {
-                        Bucket: bucketName,
-                        Key: fileName,
-                        Body: fileContent,
-                        ContentType: 'text/csv',
-                    };
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 3, , 4]);
-                    command = new client_s3_1.PutObjectCommand(params);
-                    return [4 /*yield*/, s3.send(command)];
-                case 2:
-                    _a.sent(); // Using the send() method to execute the command
-                    console.log("Successfully uploaded ".concat(fileName, " to S3"));
-                    return [3 /*break*/, 4];
-                case 3:
-                    error_1 = _a.sent();
-                    console.error('Error uploading file to S3:', error_1);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
-            }
-        });
-    });
-}
-// Create a readable stream from JSON data
-function createJSONStream(data) {
-    var jsonStream = JSONStream.stringify();
-    data.forEach(function (item) { return jsonStream.write(item); });
-    jsonStream.end(); // Properly end the stream
-    return jsonStream;
-}
+// Custom Readable stream
+var JSONReadableStream = /** @class */ (function (_super) {
+    __extends(JSONReadableStream, _super);
+    function JSONReadableStream(data) {
+        var _this = _super.call(this) || this;
+        _this.data = data;
+        _this.jsonStream = JSONStream.stringify();
+        return _this;
+    }
+    JSONReadableStream.prototype._read = function () {
+        var _this = this;
+        // Write the data into the JSON stream
+        this.data.forEach(function (item) { return _this.jsonStream.write(item); });
+        this.jsonStream.end();
+        // Once the data is written, we push it to the readable stream
+        this.jsonStream.on('data', function (chunk) { return _this.push(chunk); });
+        this.jsonStream.on('end', function () { return _this.push(null); });
+    };
+    return JSONReadableStream;
+}(stream.Readable));
 // Function to upload JSON in chunks
 function uploadJSONToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
@@ -189,7 +187,7 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    dataStream = createJSONStream(fileContent);
+                    dataStream = new JSONReadableStream(fileContent);
                     params = {
                         Bucket: bucketName,
                         Key: fileName,
