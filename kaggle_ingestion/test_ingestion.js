@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -146,6 +157,36 @@ function filterArtists(artists, artistsFromTracks) {
         return artists;
     }
 }
+// Assign undefined if the month and/or day is missing
+function assignDateValues(dateParts, updatedJson) {
+    updatedJson['year'] = parseInt(dateParts[0], 10);
+    updatedJson['month'] = dateParts[1] ? parseInt(dateParts[1], 10) : null;
+    updatedJson['day'] = dateParts[2] ? parseInt(dateParts[2], 10) : null;
+}
+function explodeDateFieldsInJson(json, dateFieldName) {
+    return json.map(function (item) {
+        var updatedItem = __assign({}, item); // Create a shallow copy to avoid mutating the original object
+        var dateField = item[dateFieldName]; // Get the release date from the current object
+        // Check if the release date exists and is not undefined or null
+        if (dateField != null) {
+            var dateParts = void 0;
+            // If the release date is a string, split it by '-'
+            if (typeof dateField === 'string') {
+                dateParts = dateField.split('-');
+            }
+            // If the release date is a number (just the year), handle it accordingly
+            else if (typeof dateField === 'number') {
+                dateParts = [dateField.toString()]; // Treat it as just a year
+            }
+            else {
+                dateParts = []; // If the release date is neither string nor number, we can't process it
+            }
+            // Call the function to assign values to the updatedItem
+            assignDateValues(dateParts, updatedItem);
+        }
+        return updatedItem; // Return the modified item
+    });
+}
 // Upload CSV file to S3
 function uploadCSVToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
@@ -180,53 +221,40 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, filteredTracksCSV, filteredArtistsCSV, error_2;
+        var tracks, artists, artistsWithTracks, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 5, , 6]);
+                    _a.trys.push([0, 3, , 4]);
                     return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
                     console.log('1. File downloaded');
-                    console.log('Row count:', tracks.length);
                     return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
                 case 2:
                     artists = _a.sent();
                     console.log('2. File downloaded');
-                    console.log('Row count:', tracks.length);
-                    filteredTracks = filterTracks(tracks);
+                    // console.log('Row count:', artists.length);
+                    // console.log(artists[0])
+                    // Filter the first CSV file
+                    tracks = filterTracks(tracks);
                     console.log('3. File filtered');
-                    console.log('Row count:', filteredTracks.length);
-                    console.log(filteredTracks[0].artists);
-                    console.log(filteredTracks[827].artists);
-                    artistsWithTracks = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
+                    artistsWithTracks = new Set(tracks.flatMap(function (track) { return track.artists; }));
                     console.log('4. Artists with tracks taken');
-                    console.log('Row count:', artistsWithTracks.values.length);
-                    filteredArtists = filterArtists(artists, artistsWithTracks);
+                    console.log('Row count:', artistsWithTracks.size);
+                    console.log("Is first artist Uli?", artistsWithTracks.values().next().value === 'Uli');
+                    // console.log(artistsWithTracks.values().next().value);
+                    // Filter the second CSV file based on artists from the filtered first file
+                    artists = filterArtists(artists, artistsWithTracks);
                     console.log('5. File filtered');
-                    console.log('Row count:', filteredArtists.length);
-                    filteredTracksCSV = Papa.unparse(filteredTracks);
-                    console.log('6. tracks converted to csv');
-                    console.log(filteredTracksCSV[0]);
-                    filteredArtistsCSV = Papa.unparse(filteredArtists);
-                    console.log('7. artists converted to csv');
-                    console.log(filteredArtistsCSV[0]);
-                    // Upload the filtered CSV files to AWS S3
-                    return [4 /*yield*/, uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME)];
+                    console.log('Row count:', artists.length);
+                    console.log(artists[0]);
+                    return [3 /*break*/, 4];
                 case 3:
-                    // Upload the filtered CSV files to AWS S3
-                    _a.sent();
-                    return [4 /*yield*/, uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME)];
-                case 4:
-                    _a.sent();
-                    console.log('Files uploaded successfully to S3');
-                    return [3 /*break*/, 6];
-                case 5:
                     error_2 = _a.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 6];
-                case 6: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });

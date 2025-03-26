@@ -179,6 +179,8 @@ async function main() {
     // Filter the second CSV file based on artists from the filtered first file
     const filteredArtists = filterArtists(artists, artistsWithTracks);
 
+    const tracksWithExplodedDates = explodeDateFieldsInJson(filteredTracks, 'release_date')
+
   } catch (error) {
     console.error('Error:', error);
   }

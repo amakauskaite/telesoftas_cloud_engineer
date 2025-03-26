@@ -105,6 +105,45 @@ function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
   
 }
 
+interface DynamicJson {
+  [key: string]: any; // Allows any key with any value
+}
+
+// Assign undefined if the month and/or day is missing
+function assignDateValues(dateParts: string[], updatedJson: DynamicJson) {
+  updatedJson['year'] = parseInt(dateParts[0], 10);
+  updatedJson['month'] = dateParts[1] ? parseInt(dateParts[1], 10) : null;
+  updatedJson['day'] = dateParts[2] ? parseInt(dateParts[2], 10) : null;
+}
+
+function explodeDateFieldsInJson(json: DynamicJson[], dateFieldName: string): DynamicJson[] {
+  return json.map((item) => {
+      const updatedItem: DynamicJson = { ...item }; // Create a shallow copy to avoid mutating the original object
+
+      const dateField = item[dateFieldName]; // Get the release date from the current object
+      // Check if the release date exists and is not undefined or null
+      if (dateField != null) {
+          let dateParts: string[];
+
+          // If the release date is a string, split it by '-'
+          if (typeof dateField === 'string') {
+              dateParts = dateField.split('-');
+          }
+          // If the release date is a number (just the year), handle it accordingly
+          else if (typeof dateField === 'number') {
+              dateParts = [dateField.toString()]; // Treat it as just a year
+          } else {
+              dateParts = []; // If the release date is neither string nor number, we can't process it
+          }
+
+          // Call the function to assign values to the updatedItem
+          assignDateValues(dateParts, updatedItem);
+      }
+
+      return updatedItem; // Return the modified item
+  });
+}
+
 // Upload CSV file to S3
 async function uploadCSVToS3( fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
   const params = {
@@ -128,35 +167,43 @@ async function main() {
   try {
 
     // Download CSV files
-    const tracks = await downloadAndExtractCSV(TRACKS_URL);
+    let tracks = await downloadAndExtractCSV(TRACKS_URL);
     console.log('1. File downloaded');
-    console.log('Row count:', tracks.length);
+    // console.log('Row count:', tracks.length);
     // console.log(tracks[0])
 
-    const artists = await downloadAndExtractCSV(ARTISTS_URL);
+    let artists = await downloadAndExtractCSV(ARTISTS_URL);
     console.log('2. File downloaded');
-    console.log('Row count:', artists.length);
+    // console.log('Row count:', artists.length);
     // console.log(artists[0])
 
     // Filter the first CSV file
-    const filteredTracks = filterTracks(tracks);
+    tracks = filterTracks(tracks);
     console.log('3. File filtered');
-    console.log('Row count:', filteredTracks.length);
-    // console.log(filteredTracks[0].artists);
-    // console.log(filteredTracks[827].artists);
+    // console.log('Row count:', tracks.length);
+    // console.log(tracks[0].artists);
+    // console.log(tracks[827].artists);
 
-    const artistsWithTracks = new Set(filteredTracks.flatMap(track => track.artists));
+    const artistsWithTracks = new Set(tracks.flatMap(track => track.artists));
     console.log('4. Artists with tracks taken');
-    console.log('Row count:', artistsWithTracks.values.length);
-    // console.log("Is first artist Uli?", artistsWithTracks[0] === 'Uli')
-    // console.log(artistsWithTracks[827]);
+    console.log('Row count:', artistsWithTracks.size);
+    console.log("Is first artist Uli?", artistsWithTracks.values().next().value === 'Uli')
+    // console.log(artistsWithTracks.values().next().value);
 
 
     // Filter the second CSV file based on artists from the filtered first file
-    const filteredArtists = filterArtists(artists, artistsWithTracks);
+    artists = filterArtists(artists, artistsWithTracks);
     console.log('5. File filtered');
-    console.log('Row count:', filteredArtists.length)
-    // console.log(filteredArtists[0])
+    console.log('Row count:', artists.length)
+    console.log(artists[0])
+
+    /*
+    tracks = explodeDateFieldsInJson(tracks, 'release_date')
+    console.log('6. Added date-year-month to tracks');
+    console.log('Row count:', tracks.length)
+    console.log(tracks[0]);
+    console.log(tracks[15]);
+    */
 
     /*
     // Convert filtered data back to CSV format
