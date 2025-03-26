@@ -3,151 +3,106 @@ import * as AWS from 'aws-sdk';
 import * as Papa from 'papaparse';
 import * as JSZip from 'jszip';
 
-const BUCKET_NAME = 'auma-spotify'; 
-
+const BUCKET_NAME = 'auma-spotify';
 const ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 const TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
-const ARTISTS_FILENAME = 'artists.csv'
-const TRACKS_FILENAME = 'tracks.csv'
+const ARTISTS_FILENAME = 'artists.csv';
+const TRACKS_FILENAME = 'tracks.csv';
 
 // Initialize AWS S3
-// Using an IAM user with AWS Toolkit to store credentials, so they're not being passed here in the constructor
 const s3 = new AWS.S3();
 
 // Helper function to download and parse CSV from URL
-async function downloadCSV(url: string): Promise<any[]> {
+async function downloadAndParseCSV(url: string): Promise<any[]> {
   const response = await axios.get(url);
   return new Promise((resolve, reject) => {
     Papa.parse(response.data, {
       header: true,
       dynamicTyping: true,
-      complete: (results) => resolve(results.data),
-      error: (err) => reject(err),
+      complete: (result) => resolve(result.data),
+      error: (error) => reject(`Error parsing CSV: ${error.message}`),
     });
   });
 }
 
-// Helper function to download and parse CSV from a ZIP file
+// Helper function to download and extract CSV from ZIP file
 async function downloadAndExtractCSV(url: string): Promise<any[]> {
-  const response = await axios.get(url, { responseType: 'arraybuffer' }); // Download ZIP as binary
-
-  // Create a new JSZip instance to handle the ZIP file
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
   const zip = await JSZip.loadAsync(response.data);
-
-  // Assuming there is only one CSV file inside the ZIP, find the first CSV file
   const csvFileName = Object.keys(zip.files).find(fileName => fileName.endsWith('.csv'));
 
   if (!csvFileName) {
     throw new Error('No CSV file found in the ZIP archive.');
   }
 
-  // Extract the CSV file content
   const csvFile = zip.files[csvFileName];
-  const csvData = await csvFile.async('text'); // Get the file content as text
+  const csvData = await csvFile.async('text');
 
-  // Parse the CSV content using PapaParse
   return new Promise((resolve, reject) => {
     Papa.parse(csvData, {
-            header: true,
-            dynamicTyping: true, // Automatically convert values like numbers
-            transform: (value, field) => {
-              if (field === 'artists') {
-                try {
-                  // Step 1: Remove square brackets
-                  const valueWithoutBrackets = value.replace(/[\[\]]/g, '');
-    
-                  // Step 2: Escape commas inside quoted strings by replacing with a placeholder
-                  const valueWithEscapedCommas = valueWithoutBrackets.replace(/"([^"]*)"/g, (match) => {
-                    return match.replace(/,/g, '\\comma\\');
-                  });
-    
-                  // Step 3: Match all quoted strings and non-quoted parts, split by commas outside quotes
-                  let artistsArray = valueWithEscapedCommas.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
-                    .map(item => item.trim().replace(/^['"]|['"]$/g, '')); // Remove surrounding quotes and trim spaces
-    
-                  // Step 4: Revert the escaped commas back to real commas
-                  artistsArray = artistsArray.map(item => item.replace(/\\comma\\/g, ','));
-    
-                  return artistsArray; // Return as an array
-                } catch (e) {
-                  console.error('Parsing error for value:', JSON.stringify(value), e);
-                  return value; // If it fails, return the original value (can handle cases where it's not a valid array string)
-                }
-              }
-              return value; // Leave other fields unchanged
-            },
-            complete: (result) => {
-              resolve(result.data); // Resolving the promise with parsed data
-            },
-            error: (error) => {
-              reject(`Error parsing CSV: ${error.message}`);
-            },
-          });
+      header: true,
+      dynamicTyping: true,
+      transform: (value, field) => {
+        if (field === 'artists') {
+          const cleanedValue = value.replace(/[\[\]]/g, '')
+          .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
+          
+          let artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
+            .map(item => item.trim().replace(/^['"]|['"]$/g, ''))
+            .map(item => item.replace(/\\comma\\/g, ','));
+          return artistsArray;
+        }
+        return value;
+      },
+      complete: (result) => resolve(result.data),
+      error: (error) => reject(`Error parsing CSV: ${error.message}`),
+    });
   });
 }
 
-// Filter tracks file
-// Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
+// Filter tracks to only include valid tracks (with name and duration >= 60 seconds)
 function filterTracks(data: any[]): any[] {
-  console.log("Null row cnt:", data.filter((row) => row.name === null).length, "short song row cnt:", data.filter((row) => row.duration_ms < 60000).length)
   return data.filter((row) => row.name !== null && row.duration_ms >= 60000);
 }
 
-// Filter artists file to only have artists with tracks in the filtered tracks file
+// Filter artists to only include those who have tracks in the filtered tracks list
 function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
-  // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
-  try {
-    return artists.filter((artist) => artistsFromTracks.has(artist.name)); 
-  } catch (error) {
-    console.error('Error:', error);
-    return artists;
-  }
-  
+  return artists.filter((artist) => artistsFromTracks.has(artist.name));
 }
 
-interface DynamicJson {
-  [key: string]: any; // Allows any key with any value
-}
-
-// Assign null if the month and/or day is missing
-// Assuming date is in YYYY-MM-DD format and not YYYY-DD-MM
-function assignDateValues(dateParts: string[], updatedJson: DynamicJson) {
+// Helper function to assign year, month, and day from date string
+function assignDateValues(dateParts: string[], updatedJson: any) {
   const [year, month = null, day = null] = dateParts.map(part => part ? parseInt(part, 10) : null);
-  
   updatedJson['year'] = year;
   updatedJson['month'] = month;
   updatedJson['day'] = day;
 }
 
 // Explode the date field into separate year, month, and day fields
-function explodeDateFieldsInJson(json: DynamicJson[], dateFieldName: string): DynamicJson[] {
+function explodeDateFieldsInJson(json: any[], dateFieldName: string): any[] {
   return json.map((item) => {
-    const updatedItem: DynamicJson = { ...item }; // Shallow copy to avoid mutating the original item
+    const updatedItem = { ...item };
+    const dateField = item[dateFieldName];
 
-    const dateField = item[dateFieldName]; // Get the release date from the current object
+    if (dateField) {
+      // Always convert the dateField to a string and split by '-'
+      const dateParts = dateField.toString().split('-');
 
-    if (dateField != null) {
-      let dateParts: string[];
-
-      // Handle the dateField based on its type
-      if (typeof dateField === 'string') {
-        dateParts = dateField.split('-');
-      } else if (typeof dateField === 'number') {
-        dateParts = [dateField.toString()]; // Treat it as just a year
-      } else {
-        dateParts = []; // Invalid format, handle as empty
-      }
-
-      // Call the function to assign values to the updatedItem
+      // Assign the extracted values (year, month, day) to the updatedItem
       assignDateValues(dateParts, updatedItem);
+    } else {
+      // Handle cases where dateField is invalid or missing
+      updatedItem['year'] = null;
+      updatedItem['month'] = null;
+      updatedItem['day'] = null;
     }
 
-    return updatedItem; // Return the modified item
+    return updatedItem;
   });
-} 
+}
 
 // Upload CSV file to S3
-async function uploadCSVToS3( fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
+async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
   const params = {
     Bucket: bucketName,
     Key: fileName,
@@ -163,61 +118,41 @@ async function uploadCSVToS3( fileName: string, fileContent: Buffer, bucketName:
   }
 }
 
-// TODO: move helper functions to a separate file. Make them reusable, if possible
 // Main function to download, filter, and upload the CSV files
 async function main() {
   try {
+    // Download CSV files concurrently
+    const [tracks, artists] = await Promise.all([
+      downloadAndExtractCSV(TRACKS_URL),
+      downloadAndExtractCSV(ARTISTS_URL),
+    ]);
+    console.log('CSV files downloaded');
 
-    // Download CSV files
-    let tracks = await downloadAndExtractCSV(TRACKS_URL);
-    console.log('1. File downloaded');
-    // console.log('Row count:', tracks.length);
-    // console.log(tracks[0])
+    // Filter the tracks (only valid tracks)
+    let filteredTracks = filterTracks(tracks);
+    console.log('Tracks filtered');
 
-    let artists = await downloadAndExtractCSV(ARTISTS_URL);
-    console.log('2. File downloaded');
-    // console.log('Row count:', artists.length);
-    // console.log(artists[0])
+    // Extract artists from filtered tracks
+    const artistsWithTracks = new Set(filteredTracks.flatMap(track => track.artists));
 
-    // Filter the first CSV file
-    tracks = filterTracks(tracks);
-    console.log('3. File filtered');
-    // console.log('Row count:', tracks.length);
-    // console.log(tracks[0].artists);
-    // console.log(tracks[827].artists);
+    // Filter the artists based on the filtered tracks
+    let filteredArtists = filterArtists(artists, artistsWithTracks);
+    console.log('Artists filtered');
 
-    const artistsWithTracks = new Set(tracks.flatMap(track => track.artists));
-    console.log('4. Artists with tracks taken');
-    // console.log('Row count:', artistsWithTracks.size);
-    // console.log("Is first artist Uli?", artistsWithTracks.values().next().value === 'Uli')
-    // console.log(artistsWithTracks.values().next().value);
-
-
-    // Filter the second CSV file based on artists from the filtered first file
-    artists = filterArtists(artists, artistsWithTracks);
-    console.log('5. File filtered');
-    // console.log('Row count:', artists.length)
-    // console.log(artists[0])
-
-    tracks = explodeDateFieldsInJson(tracks, 'release_date')
-    console.log('6. Added date-year-month to tracks');
-    console.log('Row count:', tracks.length)
-    console.log(tracks[0]);
-    console.log(tracks[15]);
+    // Explode the date fields in tracks
+    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+    console.log('Date fields exploded in tracks');
 
     /*
-    // Convert filtered data back to CSV format
+    // Convert filtered data back to CSV format (if necessary)
     const filteredTracksCSV = Papa.unparse(filteredTracks);
-    console.log('6. tracks converted to csv');
-    console.log(filteredTracksCSV[0])
-
     const filteredArtistsCSV = Papa.unparse(filteredArtists);
-    console.log('7. artists converted to csv');
-    console.log(filteredArtistsCSV[0])
 
     // Upload the filtered CSV files to AWS S3
-    await uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME);
-    await uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME);
+    await Promise.all([
+      uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME),
+      uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
+    ]);
 
     console.log('Files uploaded successfully to S3');
     */

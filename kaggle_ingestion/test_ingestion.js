@@ -57,10 +57,9 @@ var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spo
 var ARTISTS_FILENAME = 'artists.csv';
 var TRACKS_FILENAME = 'tracks.csv';
 // Initialize AWS S3
-// Using an IAM user with AWS Toolkit to store credentials, so they're not being passed here in the constructor
 var s3 = new AWS.S3();
 // Helper function to download and parse CSV from URL
-function downloadCSV(url) {
+function downloadAndParseCSV(url) {
     return __awaiter(this, void 0, void 0, function () {
         var response;
         return __generator(this, function (_a) {
@@ -72,15 +71,15 @@ function downloadCSV(url) {
                             Papa.parse(response.data, {
                                 header: true,
                                 dynamicTyping: true,
-                                complete: function (results) { return resolve(results.data); },
-                                error: function (err) { return reject(err); },
+                                complete: function (result) { return resolve(result.data); },
+                                error: function (error) { return reject("Error parsing CSV: ".concat(error.message)); },
                             });
                         })];
             }
         });
     });
 }
-// Helper function to download and parse CSV from a ZIP file
+// Helper function to download and extract CSV from ZIP file
 function downloadAndExtractCSV(url) {
     return __awaiter(this, void 0, void 0, function () {
         var response, zip, csvFileName, csvFile, csvData;
@@ -100,64 +99,38 @@ function downloadAndExtractCSV(url) {
                     return [4 /*yield*/, csvFile.async('text')];
                 case 3:
                     csvData = _a.sent();
-                    // Parse the CSV content using PapaParse
                     return [2 /*return*/, new Promise(function (resolve, reject) {
                             Papa.parse(csvData, {
                                 header: true,
-                                dynamicTyping: true, // Automatically convert values like numbers
+                                dynamicTyping: true,
                                 transform: function (value, field) {
                                     if (field === 'artists') {
-                                        try {
-                                            // Step 1: Remove square brackets
-                                            var valueWithoutBrackets = value.replace(/[\[\]]/g, '');
-                                            // Step 2: Escape commas inside quoted strings by replacing with a placeholder
-                                            var valueWithEscapedCommas = valueWithoutBrackets.replace(/"([^"]*)"/g, function (match) {
-                                                return match.replace(/,/g, '\\comma\\');
-                                            });
-                                            // Step 3: Match all quoted strings and non-quoted parts, split by commas outside quotes
-                                            var artistsArray = valueWithEscapedCommas.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
-                                                .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); }); // Remove surrounding quotes and trim spaces
-                                            // Step 4: Revert the escaped commas back to real commas
-                                            artistsArray = artistsArray.map(function (item) { return item.replace(/\\comma\\/g, ','); });
-                                            return artistsArray; // Return as an array
-                                        }
-                                        catch (e) {
-                                            console.error('Parsing error for value:', JSON.stringify(value), e);
-                                            return value; // If it fails, return the original value (can handle cases where it's not a valid array string)
-                                        }
+                                        var cleanedValue = value.replace(/[\[\]]/g, '')
+                                            .replace(/"([^"]*)"/g, function (match) { return match.replace(/,/g, '\\comma\\'); });
+                                        var artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
+                                            .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); })
+                                            .map(function (item) { return item.replace(/\\comma\\/g, ','); });
+                                        return artistsArray;
                                     }
-                                    return value; // Leave other fields unchanged
+                                    return value;
                                 },
-                                complete: function (result) {
-                                    resolve(result.data); // Resolving the promise with parsed data
-                                },
-                                error: function (error) {
-                                    reject("Error parsing CSV: ".concat(error.message));
-                                },
+                                complete: function (result) { return resolve(result.data); },
+                                error: function (error) { return reject("Error parsing CSV: ".concat(error.message)); },
                             });
                         })];
             }
         });
     });
 }
-// Filter tracks file
-// Should only have rows where there's a track name AND the tracks is longer than 1 minute (or 1 minute long)
+// Filter tracks to only include valid tracks (with name and duration >= 60 seconds)
 function filterTracks(data) {
-    console.log("Null row cnt:", data.filter(function (row) { return row.name === null; }).length, "short song row cnt:", data.filter(function (row) { return row.duration_ms < 60000; }).length);
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
 }
-// Filter artists file to only have artists with tracks in the filtered tracks file
+// Filter artists to only include those who have tracks in the filtered tracks list
 function filterArtists(artists, artistsFromTracks) {
-    // For each artist in artists file check if if the artist's name is in the list of artistsFromTracks
-    try {
-        return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
-    }
-    catch (error) {
-        console.error('Error:', error);
-        return artists;
-    }
+    return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
 }
-// Assign null if the month and/or day is missing
+// Helper function to assign year, month, and day from date string
 function assignDateValues(dateParts, updatedJson) {
     var _a = dateParts.map(function (part) { return part ? parseInt(part, 10) : null; }), year = _a[0], _b = _a[1], month = _b === void 0 ? null : _b, _c = _a[2], day = _c === void 0 ? null : _c;
     updatedJson['year'] = year;
@@ -167,24 +140,21 @@ function assignDateValues(dateParts, updatedJson) {
 // Explode the date field into separate year, month, and day fields
 function explodeDateFieldsInJson(json, dateFieldName) {
     return json.map(function (item) {
-        var updatedItem = __assign({}, item); // Shallow copy to avoid mutating the original item
-        var dateField = item[dateFieldName]; // Get the release date from the current object
-        if (dateField != null) {
-            var dateParts = void 0;
-            // Handle the dateField based on its type
-            if (typeof dateField === 'string') {
-                dateParts = dateField.split('-');
-            }
-            else if (typeof dateField === 'number') {
-                dateParts = [dateField.toString()]; // Treat it as just a year
-            }
-            else {
-                dateParts = []; // Invalid format, handle as empty
-            }
-            // Call the function to assign values to the updatedItem
+        var updatedItem = __assign({}, item);
+        var dateField = item[dateFieldName];
+        if (dateField) {
+            // Always convert the dateField to a string and split by '-'
+            var dateParts = dateField.toString().split('-');
+            // Assign the extracted values (year, month, day) to the updatedItem
             assignDateValues(dateParts, updatedItem);
         }
-        return updatedItem; // Return the modified item
+        else {
+            // Handle cases where dateField is invalid or missing
+            updatedItem['year'] = null;
+            updatedItem['month'] = null;
+            updatedItem['day'] = null;
+        }
+        return updatedItem;
     });
 }
 // Upload CSV file to S3
@@ -217,49 +187,35 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
         });
     });
 }
-// TODO: move helper functions to a separate file. Make them reusable, if possible
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, artists, artistsWithTracks, error_2;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var _a, tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, error_2;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
-                    return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
+                    _b.trys.push([0, 2, , 3]);
+                    return [4 /*yield*/, Promise.all([
+                            downloadAndExtractCSV(TRACKS_URL),
+                            downloadAndExtractCSV(ARTISTS_URL),
+                        ])];
                 case 1:
-                    tracks = _a.sent();
-                    console.log('1. File downloaded');
-                    return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
+                    _a = _b.sent(), tracks = _a[0], artists = _a[1];
+                    console.log('CSV files downloaded');
+                    filteredTracks = filterTracks(tracks);
+                    console.log('Tracks filtered');
+                    artistsWithTracks = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
+                    filteredArtists = filterArtists(artists, artistsWithTracks);
+                    console.log('Artists filtered');
+                    // Explode the date fields in tracks
+                    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+                    console.log('Date fields exploded in tracks');
+                    return [3 /*break*/, 3];
                 case 2:
-                    artists = _a.sent();
-                    console.log('2. File downloaded');
-                    // console.log('Row count:', artists.length);
-                    // console.log(artists[0])
-                    // Filter the first CSV file
-                    tracks = filterTracks(tracks);
-                    console.log('3. File filtered');
-                    artistsWithTracks = new Set(tracks.flatMap(function (track) { return track.artists; }));
-                    console.log('4. Artists with tracks taken');
-                    // console.log('Row count:', artistsWithTracks.size);
-                    // console.log("Is first artist Uli?", artistsWithTracks.values().next().value === 'Uli')
-                    // console.log(artistsWithTracks.values().next().value);
-                    // Filter the second CSV file based on artists from the filtered first file
-                    artists = filterArtists(artists, artistsWithTracks);
-                    console.log('5. File filtered');
-                    // console.log('Row count:', artists.length)
-                    // console.log(artists[0])
-                    tracks = explodeDateFieldsInJson(tracks, 'release_date');
-                    console.log('6. Added date-year-month to tracks');
-                    console.log('Row count:', tracks.length);
-                    console.log(tracks[0]);
-                    console.log(tracks[15]);
-                    return [3 /*break*/, 4];
-                case 3:
-                    error_2 = _a.sent();
+                    error_2 = _b.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
             }
         });
     });
