@@ -51,6 +51,8 @@ var axios_1 = require("axios");
 var client_s3_1 = require("@aws-sdk/client-s3"); // Import S3Client and PutObjectCommand from AWS SDK v3
 var Papa = require("papaparse");
 var JSZip = require("jszip");
+var stream = require("stream");
+var JSONStream = require("JSONStream");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
@@ -173,18 +175,30 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
         });
     });
 }
+// Create a readable stream from JSON data
+function createJSONStream(data) {
+    var readable = new stream.Readable();
+    readable._read = function () { }; // _read is required but you can leave it empty
+    // Convert JSON object to a stream of lines
+    var jsonStream = JSONStream.stringify();
+    jsonStream.pipe(readable);
+    data.forEach(function (item) { return jsonStream.write(item); });
+    jsonStream.end();
+    return readable;
+}
+// Function to upload JSON in chunks
 function uploadJSONToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
-        var jsonData, params, command;
+        var dataStream, params, command;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    jsonData = JSON.stringify(fileContent);
+                    dataStream = createJSONStream(fileContent);
                     params = {
                         Bucket: bucketName,
                         Key: fileName,
-                        Body: jsonData,
-                        ContentType: 'application/json', // Set content type to JSON
+                        Body: dataStream, // Upload as a stream
+                        ContentType: 'application/json',
                     };
                     command = new client_s3_1.PutObjectCommand(params);
                     return [4 /*yield*/, s3.send(command)];

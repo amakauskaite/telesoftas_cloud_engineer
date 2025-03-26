@@ -2,6 +2,8 @@ import axios from 'axios';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';  // Import S3Client and PutObjectCommand from AWS SDK v3
 import * as Papa from 'papaparse';
 import * as JSZip from 'jszip';
+import * as stream from 'stream';
+import * as JSONStream from 'JSONStream';
 
 const BUCKET_NAME = 'auma-spotify';
 const ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
@@ -112,13 +114,30 @@ async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: 
   }
 }
 
-async function uploadJSONToS3(fileName:string, fileContent, bucketName: string) {
-  const jsonData = JSON.stringify(fileContent);  // Convert your object/array into JSON
+// Create a readable stream from JSON data
+function createJSONStream(data: any[]): stream.Readable {
+  const readable = new stream.Readable();
+  readable._read = () => { };  // _read is required but you can leave it empty
+
+  // Convert JSON object to a stream of lines
+  const jsonStream = JSONStream.stringify();
+  jsonStream.pipe(readable);
+
+  data.forEach(item => jsonStream.write(item));
+  jsonStream.end();
+
+  return readable;
+}
+
+// Function to upload JSON in chunks
+async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: string) {
+  const dataStream = createJSONStream(fileContent); // Create a stream from the content
+
   const params = {
     Bucket: bucketName,
     Key: fileName,
-    Body: jsonData,
-    ContentType: 'application/json',  // Set content type to JSON
+    Body: dataStream,  // Upload as a stream
+    ContentType: 'application/json',
   };
 
   const command = new PutObjectCommand(params);
@@ -126,31 +145,31 @@ async function uploadJSONToS3(fileName:string, fileContent, bucketName: string) 
   console.log(`Successfully uploaded ${fileName} to S3`);
 }
 
+async function tracks() {
+  // Download CSV files
+  const tracks = await downloadAndExtractCSV(TRACKS_URL);
+  console.log('CSV file downloaded');
+
+  // Filter the tracks (only valid tracks)
+  let filteredTracks = filterTracks(tracks);
+  console.log('Tracks filtered');
+
+  // Explode the date fields in tracks
+  filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+  console.log('Date fields exploded in tracks');
+
+  // Upload the filtered tracks file to AWS S3
+  await uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME);
+
+  // Extract artists from filtered tracks
+  return new Set(filteredTracks.flatMap(track => track.artists));
+}
+
 // Main function to download, filter, and upload the CSV files
 async function main() {
   try {
     // Work with tracks file (as it's used as input to the artists file)
-    // Download CSV files
-    const tracks = await downloadAndExtractCSV(TRACKS_URL);
-    console.log('CSV file downloaded');
-
-    // Filter the tracks (only valid tracks)
-    let filteredTracks = filterTracks(tracks);
-    console.log('Tracks filtered');
-
-    // Extract artists from filtered tracks
-    const artistsWithTracks = new Set(filteredTracks.flatMap(track => track.artists));
-
-    // Explode the date fields in tracks
-    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
-    console.log('Date fields exploded in tracks');
-
-    // Upload the filtered CSV files to AWS S3
-    await Promise.all([
-      uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME),
-      // uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
-    ]);
-
+    const artistsInTracks = tracks();
 
     // Work with artists file
     // const artists = await downloadAndExtractCSV(ARTISTS_URL);
