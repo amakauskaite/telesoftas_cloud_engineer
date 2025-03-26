@@ -115,9 +115,18 @@ async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: 
   }
 }
 
+// Create a readable stream from JSON data
+function createJSONStream(data: any[]): stream.Readable {
+  const jsonStream = JSONStream.stringify();
+  data.forEach(item => jsonStream.write(item));
+  jsonStream.end();  // Properly end the stream
+  
+  return jsonStream;
+}
+
+// Function to upload JSON in chunks
 async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: string) {
-  // Create a readable stream from the JSON content
-  const dataStream = createJSONStream(fileContent);
+  const dataStream = createJSONStream(fileContent);  // Create a stream from the content
 
   const params = {
     Bucket: bucketName,
@@ -126,7 +135,7 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
     ContentType: 'application/json',
   };
 
-  // Use the Upload class for streaming
+  // Use the Upload class from @aws-sdk/lib-storage for streaming uploads
   const upload = new Upload({
     client: s3,
     params: params,
@@ -135,15 +144,6 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
   // This will handle the file upload in chunks
   await upload.done();  // Wait until the upload completes
   console.log(`Successfully uploaded ${fileName} to S3`);
-}
-
-// Create a readable stream from JSON data
-function createJSONStream(data: any[]): stream.Readable {
-  const jsonStream = JSONStream.stringify();
-  data.forEach(item => jsonStream.write(item));
-  jsonStream.end();  // Properly end the stream
-  
-  return jsonStream;
 }
 
 async function tracks() {

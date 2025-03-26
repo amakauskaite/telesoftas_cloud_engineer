@@ -175,6 +175,14 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
         });
     });
 }
+// Create a readable stream from JSON data
+function createJSONStream(data) {
+    var jsonStream = JSONStream.stringify();
+    data.forEach(function (item) { return jsonStream.write(item); });
+    jsonStream.end(); // Properly end the stream
+    return jsonStream;
+}
+// Function to upload JSON in chunks
 function uploadJSONToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
         var dataStream, params, upload;
@@ -202,13 +210,6 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
             }
         });
     });
-}
-// Create a readable stream from JSON data
-function createJSONStream(data) {
-    var jsonStream = JSONStream.stringify();
-    data.forEach(function (item) { return jsonStream.write(item); });
-    jsonStream.end(); // Properly end the stream
-    return jsonStream;
 }
 function tracks() {
     return __awaiter(this, void 0, void 0, function () {
