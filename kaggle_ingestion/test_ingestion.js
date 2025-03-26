@@ -68,7 +68,6 @@ var lib_storage_1 = require("@aws-sdk/lib-storage");
 var Papa = require("papaparse");
 var JSZip = require("jszip");
 var stream = require("stream");
-var JSONStream = require("JSONStream");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
@@ -160,49 +159,58 @@ function explodeDateFieldsInJson(json, dateFieldName) {
         return updatedItem;
     });
 }
-// Custom Readable stream
+// ✅ Fixed JSON Stream (Prevents Memory Overload)
 var JSONReadableStream = /** @class */ (function (_super) {
     __extends(JSONReadableStream, _super);
     function JSONReadableStream(data) {
         var _this = _super.call(this) || this;
+        _this.index = 0;
+        _this.jsonStarted = false;
         _this.data = data;
-        _this.jsonStream = JSONStream.stringify();
         return _this;
     }
     JSONReadableStream.prototype._read = function () {
-        var _this = this;
-        // Write the data into the JSON stream
-        this.data.forEach(function (item) { return _this.jsonStream.write(item); });
-        this.jsonStream.end();
-        // Once the data is written, we push it to the readable stream
-        this.jsonStream.on('data', function (chunk) { return _this.push(chunk); });
-        this.jsonStream.on('end', function () { return _this.push(null); });
+        if (!this.jsonStarted) {
+            this.push("["); // Start JSON array
+            this.jsonStarted = true;
+        }
+        if (this.index < this.data.length) {
+            var chunk = JSON.stringify(this.data[this.index]);
+            if (this.index > 0) {
+                this.push("," + chunk); // Add commas between objects
+            }
+            else {
+                this.push(chunk);
+            }
+            this.index++;
+        }
+        else {
+            this.push("]"); // Close JSON array
+            this.push(null); // End stream
+        }
     };
     return JSONReadableStream;
 }(stream.Readable));
-// Function to upload JSON in chunks
+// ✅ Fixed JSON Upload Function (Now Uses Streaming)
 function uploadJSONToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
-        var dataStream, params, upload;
+        var dataStream, upload;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     dataStream = new JSONReadableStream(fileContent);
-                    params = {
-                        Bucket: bucketName,
-                        Key: fileName,
-                        Body: dataStream, // Upload as a stream
-                        ContentType: 'application/json',
-                    };
                     upload = new lib_storage_1.Upload({
                         client: s3,
-                        params: params,
+                        params: {
+                            Bucket: bucketName,
+                            Key: fileName,
+                            Body: dataStream, // Proper streaming
+                            ContentType: 'application/json',
+                        },
                     });
-                    // This will handle the file upload in chunks
                     return [4 /*yield*/, upload.done()];
                 case 1:
-                    // This will handle the file upload in chunks
-                    _a.sent(); // Wait until the upload completes
+                    _a.sent();
                     console.log("Successfully uploaded ".concat(fileName, " to S3"));
                     return [2 /*return*/];
             }

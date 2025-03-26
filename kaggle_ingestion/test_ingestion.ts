@@ -97,51 +97,61 @@ function explodeDateFieldsInJson(json: any[], dateFieldName: string): any[] {
   });
 }
 
-// Custom Readable stream
+// ✅ Fixed JSON Stream (Prevents Memory Overload)
 class JSONReadableStream extends stream.Readable {
+  private index: number;
+  private jsonStarted: boolean;
   private data: any[];
-  private jsonStream: JSONStream.Enumerator;
 
   constructor(data: any[]) {
     super();
+    this.index = 0;
+    this.jsonStarted = false;
     this.data = data;
-    this.jsonStream = JSONStream.stringify();
   }
 
   _read() {
-    // Write the data into the JSON stream
-    this.data.forEach((item) => this.jsonStream.write(item));
-    this.jsonStream.end();
-    // Once the data is written, we push it to the readable stream
-    this.jsonStream.on('data', (chunk) => this.push(chunk));
-    this.jsonStream.on('end', () => this.push(null));
+    if (!this.jsonStarted) {
+      this.push("["); // Start JSON array
+      this.jsonStarted = true;
+    }
+
+    if (this.index < this.data.length) {
+      const chunk = JSON.stringify(this.data[this.index]);
+
+      if (this.index > 0) {
+        this.push("," + chunk); // Add commas between objects
+      } else {
+        this.push(chunk);
+      }
+
+      this.index++;
+    } else {
+      this.push("]"); // Close JSON array
+      this.push(null); // End stream
+    }
   }
 }
 
-// Function to upload JSON in chunks
+// ✅ Fixed JSON Upload Function (Now Uses Streaming)
 async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: string) {
-  // Create the custom stream
   const dataStream = new JSONReadableStream(fileContent);
 
-  const params = {
-    Bucket: bucketName,
-    Key: fileName,
-    Body: dataStream,  // Upload as a stream
-    ContentType: 'application/json',
-  };
-
-  // Use the Upload class from @aws-sdk/lib-storage for streaming uploads
   const upload = new Upload({
     client: s3,
-    params: params,
+    params: {
+      Bucket: bucketName,
+      Key: fileName,
+      Body: dataStream,  // Proper streaming
+      ContentType: 'application/json',
+    },
   });
 
-  // This will handle the file upload in chunks
-  await upload.done();  // Wait until the upload completes
+  await upload.done();
   console.log(`Successfully uploaded ${fileName} to S3`);
 }
 
-async function tracks() {
+async function tracks(): Promise<Set<string>>  {
   // Download CSV files
   const tracks = await downloadAndExtractCSV(TRACKS_URL);
   console.log('CSV file downloaded');
