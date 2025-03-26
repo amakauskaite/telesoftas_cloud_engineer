@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseCSVFileFromPath = parseCSVFileFromPath;
 var fs = require("fs");
 var Papa = require("papaparse");
 function parseCSVFileFromPath(filePath) {
@@ -27,9 +28,11 @@ function parseCSVFileFromPath(filePath) {
                                 .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); }); // Remove surrounding quotes and trim spaces
                             // Step 4: Revert the escaped commas back to real commas
                             artistsArray = artistsArray.map(function (item) { return item.replace(/\\comma\\/g, ','); });
+                            /*
                             console.log("Original value: <", JSON.stringify(value), ">");
                             console.log("Escaped value: <", JSON.stringify(valueWithEscapedCommas), ">");
                             console.log("Array value: <", JSON.stringify(artistsArray), ">");
+                            */
                             return artistsArray; // Return as an array
                         }
                         catch (e) {
@@ -49,13 +52,17 @@ function parseCSVFileFromPath(filePath) {
         });
     });
 }
+/*
 // Example usage
-var filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_cloud_engineer\\kaggle_ingestion\\complex_artists_examples.csv';
+const filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_cloud_engineer\\kaggle_ingestion\\complex_artists_examples.csv';
+
 parseCSVFileFromPath(filePath)
-    .then(function (data) {
+  .then((data) => {
     console.log('Parsed CSV data:', data);
     console.log(data[0].artists[0]);
-})
-    .catch(function (error) {
+  })
+  .catch((error) => {
     console.error(error);
-});
+  });
+
+  */

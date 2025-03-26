@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as Papa from 'papaparse';
 
-function parseCSVFileFromPath(filePath: string): Promise<any[]> {
+export function parseCSVFileFromPath(filePath: string): Promise<any[]> {
   return new Promise((resolve, reject) => {
     // Read the file from the local filesystem
     fs.readFile(filePath, 'utf8', (err, data) => {
@@ -31,9 +31,11 @@ function parseCSVFileFromPath(filePath: string): Promise<any[]> {
               // Step 4: Revert the escaped commas back to real commas
               artistsArray = artistsArray.map(item => item.replace(/\\comma\\/g, ','));
 
+              /*
               console.log("Original value: <", JSON.stringify(value), ">");
               console.log("Escaped value: <", JSON.stringify(valueWithEscapedCommas), ">");
               console.log("Array value: <", JSON.stringify(artistsArray), ">");
+              */
 
               return artistsArray; // Return as an array
             } catch (e) {
@@ -54,6 +56,7 @@ function parseCSVFileFromPath(filePath: string): Promise<any[]> {
   });
 }
 
+/*
 // Example usage
 const filePath = 'C:\\Users\\ausri\\OneDrive\\Documents\\GitHub\\telesoftas_cloud_engineer\\kaggle_ingestion\\complex_artists_examples.csv';
 
@@ -65,3 +68,5 @@ parseCSVFileFromPath(filePath)
   .catch((error) => {
     console.error(error);
   });
+
+  */
