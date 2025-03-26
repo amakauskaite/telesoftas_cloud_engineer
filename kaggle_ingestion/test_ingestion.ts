@@ -97,7 +97,6 @@ function explodeDateFieldsInJson(json: any[], dateFieldName: string): any[] {
   });
 }
 
-// ✅ Fixed JSON Stream (Prevents Memory Overload)
 class JSONReadableStream extends stream.Readable {
   private index: number;
   private jsonStarted: boolean;
@@ -133,7 +132,6 @@ class JSONReadableStream extends stream.Readable {
   }
 }
 
-// ✅ Fixed JSON Upload Function (Now Uses Streaming)
 async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: string) {
   const dataStream = new JSONReadableStream(fileContent);
 
@@ -151,31 +149,58 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
   console.log(`Successfully uploaded ${fileName} to S3`);
 }
 
-async function tracks(): Promise<Set<string>>  {
-  // Download CSV files
+async function processTracks() {
+  console.log('Downloading tracks CSV...');
   const tracks = await downloadAndExtractCSV(TRACKS_URL);
-  console.log('CSV file downloaded');
-
-  // Filter the tracks (only valid tracks)
+  
+  console.log('Filtering tracks...');
   let filteredTracks = filterTracks(tracks);
-  console.log('Tracks filtered');
 
-  // Explode the date fields in tracks
+  console.log('Processing release dates...');
   filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
-  console.log('Date fields exploded in tracks');
 
-  // Upload the filtered tracks file to AWS S3
+  console.log('Uploading tracks to S3...');
   await uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME);
 
-  // Extract artists from filtered tracks
-  return new Set(filteredTracks.flatMap(track => track.artists));
+  // Extract artists
+  const artistsSet = new Set(filteredTracks.flatMap(track => track.artists));
+
+  // Free memory (set large variables to null)
+  console.log('Releasing memory...');
+  filteredTracks.length = 0;
+  tracks.length = 0;
+
+  global.gc?.(); // Force garbage collection (if allowed)
+
+  return artistsSet;
+}
+
+async function processArtists(artistsInTracks)  {
+  // Download CSV files
+  const artists = await downloadAndExtractCSV(ARTISTS_URL);
+  console.log('CSV file downloaded');
+
+  // Filter the artists based on the filtered tracks
+  let filteredArtists = filterArtists(artists, artistsInTracks);
+  console.log('Artists filtered');
+
+  // Upload the filtered tracks file to AWS S3
+  await uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME);
+
 }
 
 // Main function to download, filter, and upload the CSV files
 async function main() {
   try {
     // Work with tracks file (as it's used as input to the artists file)
-    const artistsInTracks = tracks();
+    const artistsInTracks = await processTracks();
+
+    //Clean memory after processing tracks
+    console.log('Cleaning up memory...');
+    global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
+    
+    // Process artists after tracks are cleared
+    await processArtists(artistsInTracks);
 
     // Work with artists file
     // const artists = await downloadAndExtractCSV(ARTISTS_URL);

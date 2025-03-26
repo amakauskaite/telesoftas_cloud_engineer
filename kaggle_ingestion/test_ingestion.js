@@ -159,7 +159,6 @@ function explodeDateFieldsInJson(json, dateFieldName) {
         return updatedItem;
     });
 }
-// ✅ Fixed JSON Stream (Prevents Memory Overload)
 var JSONReadableStream = /** @class */ (function (_super) {
     __extends(JSONReadableStream, _super);
     function JSONReadableStream(data) {
@@ -191,7 +190,6 @@ var JSONReadableStream = /** @class */ (function (_super) {
     };
     return JSONReadableStream;
 }(stream.Readable));
-// ✅ Fixed JSON Upload Function (Now Uses Streaming)
 function uploadJSONToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
         var dataStream, upload;
@@ -217,27 +215,53 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
         });
     });
 }
-function tracks() {
+function processTracks() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, filteredTracks;
+        var tracks, filteredTracks, artistsSet;
+        var _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    console.log('Downloading tracks CSV...');
+                    return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
+                case 1:
+                    tracks = _b.sent();
+                    console.log('Filtering tracks...');
+                    filteredTracks = filterTracks(tracks);
+                    console.log('Processing release dates...');
+                    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+                    console.log('Uploading tracks to S3...');
+                    return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
+                case 2:
+                    _b.sent();
+                    artistsSet = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
+                    // Free memory (set large variables to null)
+                    console.log('Releasing memory...');
+                    filteredTracks.length = 0;
+                    tracks.length = 0;
+                    (_a = global.gc) === null || _a === void 0 ? void 0 : _a.call(global); // Force garbage collection (if allowed)
+                    return [2 /*return*/, artistsSet];
+            }
+        });
+    });
+}
+function processArtists(artistsInTracks) {
+    return __awaiter(this, void 0, void 0, function () {
+        var artists, filteredArtists;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
+                case 0: return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
                 case 1:
-                    tracks = _a.sent();
+                    artists = _a.sent();
                     console.log('CSV file downloaded');
-                    filteredTracks = filterTracks(tracks);
-                    console.log('Tracks filtered');
-                    // Explode the date fields in tracks
-                    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
-                    console.log('Date fields exploded in tracks');
+                    filteredArtists = filterArtists(artists, artistsInTracks);
+                    console.log('Artists filtered');
                     // Upload the filtered tracks file to AWS S3
-                    return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
+                    return [4 /*yield*/, uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME)];
                 case 2:
                     // Upload the filtered tracks file to AWS S3
                     _a.sent();
-                    // Extract artists from filtered tracks
-                    return [2 /*return*/, new Set(filteredTracks.flatMap(function (track) { return track.artists; }))];
+                    return [2 /*return*/];
             }
         });
     });
@@ -245,21 +269,30 @@ function tracks() {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var artistsInTracks;
-        return __generator(this, function (_a) {
-            try {
-                artistsInTracks = tracks();
-                // Work with artists file
-                // const artists = await downloadAndExtractCSV(ARTISTS_URL);
-                // console.log('CSV file downloaded');
-                // Filter the artists based on the filtered tracks
-                // let filteredArtists = filterArtists(artists, artistsWithTracks);
-                // console.log('Artists filtered');
+        var artistsInTracks, error_1;
+        var _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _b.trys.push([0, 3, , 4]);
+                    return [4 /*yield*/, processTracks()];
+                case 1:
+                    artistsInTracks = _b.sent();
+                    //Clean memory after processing tracks
+                    console.log('Cleaning up memory...');
+                    (_a = global.gc) === null || _a === void 0 ? void 0 : _a.call(global); // Force garbage collection (only works if --expose-gc flag is enabled)
+                    // Process artists after tracks are cleared
+                    return [4 /*yield*/, processArtists(artistsInTracks)];
+                case 2:
+                    // Process artists after tracks are cleared
+                    _b.sent();
+                    return [3 /*break*/, 4];
+                case 3:
+                    error_1 = _b.sent();
+                    console.error('Error:', error_1);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
-            catch (error) {
-                console.error('Error:', error);
-            }
-            return [2 /*return*/];
         });
     });
 }
