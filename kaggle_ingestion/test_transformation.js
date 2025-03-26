@@ -15,8 +15,8 @@ var tc = require("./test_conversion");
 // Assign undefined if the month and/or day is missing
 function assignDateValues(dateParts, updatedJson) {
     updatedJson['year'] = parseInt(dateParts[0], 10);
-    updatedJson['month'] = dateParts[1] ? parseInt(dateParts[1], 10) : undefined;
-    updatedJson['day'] = dateParts[2] ? parseInt(dateParts[2], 10) : undefined;
+    updatedJson['month'] = dateParts[1] ? parseInt(dateParts[1], 10) : null;
+    updatedJson['day'] = dateParts[2] ? parseInt(dateParts[2], 10) : null;
 }
 function explodeDateFieldsInJson(json, dateFieldName) {
     return json.map(function (item) {
