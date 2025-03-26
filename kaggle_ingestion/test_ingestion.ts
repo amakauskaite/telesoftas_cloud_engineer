@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';  // Import S3Client and PutObjectCommand from AWS SDK v3
 import * as Papa from 'papaparse';
 import * as JSZip from 'jszip';
 
@@ -9,8 +9,10 @@ const TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/s
 const ARTISTS_FILENAME = 'artists.csv';
 const TRACKS_FILENAME = 'tracks.csv';
 
-// Initialize AWS S3
-const s3 = new AWS.S3();
+// Initialize AWS S3 Client (v3)
+const s3 = new S3Client({
+  region: 'eu-north-1', // Replace with the appropriate region
+});
 
 // Helper function to download and parse CSV from URL
 async function downloadAndParseCSV(url: string): Promise<any[]> {
@@ -45,7 +47,7 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
       transform: (value, field) => {
         if (field === 'artists') {
           const cleanedValue = value.replace(/[\[\]]/g, '')
-          .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
+            .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
           
           let artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
             .map(item => item.trim().replace(/^['"]|['"]$/g, ''))
@@ -101,7 +103,7 @@ function explodeDateFieldsInJson(json: any[], dateFieldName: string): any[] {
   });
 }
 
-// Upload CSV file to S3
+// Upload CSV file to S3 (v3)
 async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
   const params = {
     Bucket: bucketName,
@@ -111,7 +113,8 @@ async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: 
   };
 
   try {
-    await s3.upload(params).promise();
+    const command = new PutObjectCommand(params);  // Using PutObjectCommand from AWS SDK v3
+    await s3.send(command);  // Using the send() method to execute the command
     console.log(`Successfully uploaded ${fileName} to S3`);
   } catch (error) {
     console.error('Error uploading file to S3:', error);

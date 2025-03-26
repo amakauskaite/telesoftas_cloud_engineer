@@ -48,7 +48,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = require("axios");
-var AWS = require("aws-sdk");
+var client_s3_1 = require("@aws-sdk/client-s3"); // Import S3Client and PutObjectCommand from AWS SDK v3
 var Papa = require("papaparse");
 var JSZip = require("jszip");
 var BUCKET_NAME = 'auma-spotify';
@@ -56,8 +56,10 @@ var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/sp
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 var ARTISTS_FILENAME = 'artists.csv';
 var TRACKS_FILENAME = 'tracks.csv';
-// Initialize AWS S3
-var s3 = new AWS.S3();
+// Initialize AWS S3 Client (v3)
+var s3 = new client_s3_1.S3Client({
+    region: 'eu-north-1', // Replace with the appropriate region
+});
 // Helper function to download and parse CSV from URL
 function downloadAndParseCSV(url) {
     return __awaiter(this, void 0, void 0, function () {
@@ -157,10 +159,10 @@ function explodeDateFieldsInJson(json, dateFieldName) {
         return updatedItem;
     });
 }
-// Upload CSV file to S3
+// Upload CSV file to S3 (v3)
 function uploadCSVToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
-        var params, error_1;
+        var params, command, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -173,9 +175,10 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, s3.upload(params).promise()];
+                    command = new client_s3_1.PutObjectCommand(params);
+                    return [4 /*yield*/, s3.send(command)];
                 case 2:
-                    _a.sent();
+                    _a.sent(); // Using the send() method to execute the command
                     console.log("Successfully uploaded ".concat(fileName, " to S3"));
                     return [3 /*break*/, 4];
                 case 3:
