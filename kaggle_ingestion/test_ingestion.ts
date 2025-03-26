@@ -159,6 +159,8 @@ async function processTracks() {
   console.log('Processing release dates...');
   filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
 
+  // TODO: change danceability to string values!!
+
   console.log('Uploading tracks to S3...');
   await uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME);
 
@@ -202,13 +204,6 @@ async function main() {
     // Process artists after tracks are cleared
     await processArtists(artistsInTracks);
 
-    // Work with artists file
-    // const artists = await downloadAndExtractCSV(ARTISTS_URL);
-    // console.log('CSV file downloaded');
-
-    // Filter the artists based on the filtered tracks
-    // let filteredArtists = filterArtists(artists, artistsWithTracks);
-    // console.log('Artists filtered');
   } catch (error) {
     console.error('Error:', error);
   }
