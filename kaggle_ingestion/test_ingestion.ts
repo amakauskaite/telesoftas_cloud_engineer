@@ -48,7 +48,7 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
         if (field === 'artists') {
           const cleanedValue = value.replace(/[\[\]]/g, '')
             .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
-          
+
           let artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
             .map(item => item.trim().replace(/^['"]|['"]$/g, ''))
             .map(item => item.replace(/\\comma\\/g, ','));
@@ -124,12 +124,10 @@ async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: 
 // Main function to download, filter, and upload the CSV files
 async function main() {
   try {
-    // Download CSV files concurrently
-    const [tracks, artists] = await Promise.all([
-      downloadAndExtractCSV(TRACKS_URL),
-      downloadAndExtractCSV(ARTISTS_URL),
-    ]);
-    console.log('CSV files downloaded');
+    // Work with tracks file (as it's used as input to the artists file)
+    // Download CSV files
+    const tracks = await downloadAndExtractCSV(TRACKS_URL);
+    console.log('CSV file downloaded');
 
     // Filter the tracks (only valid tracks)
     let filteredTracks = filterTracks(tracks);
@@ -138,27 +136,28 @@ async function main() {
     // Extract artists from filtered tracks
     const artistsWithTracks = new Set(filteredTracks.flatMap(track => track.artists));
 
-    // Filter the artists based on the filtered tracks
-    let filteredArtists = filterArtists(artists, artistsWithTracks);
-    console.log('Artists filtered');
-
     // Explode the date fields in tracks
     filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
     console.log('Date fields exploded in tracks');
 
-    /*
-    // Convert filtered data back to CSV format (if necessary)
-    const filteredTracksCSV = Papa.unparse(filteredTracks);
-    const filteredArtistsCSV = Papa.unparse(filteredArtists);
+    
 
     // Upload the filtered CSV files to AWS S3
     await Promise.all([
-      uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracksCSV), BUCKET_NAME),
-      uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
+      uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracks), BUCKET_NAME),
+      // uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
     ]);
 
     console.log('Files uploaded successfully to S3');
-    */
+    
+
+    // Work with artists file
+    // const artists = await downloadAndExtractCSV(ARTISTS_URL);
+    // console.log('CSV file downloaded');
+
+    // Filter the artists based on the filtered tracks
+    // let filteredArtists = filterArtists(artists, artistsWithTracks);
+    // console.log('Artists filtered');
   } catch (error) {
     console.error('Error:', error);
   }

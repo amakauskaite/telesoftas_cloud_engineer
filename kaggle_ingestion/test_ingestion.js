@@ -193,32 +193,36 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, tracks, artists, filteredTracks, artistsWithTracks, filteredArtists, error_2;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        var tracks, filteredTracks, artistsWithTracks, error_2;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
-                    _b.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, Promise.all([
-                            downloadAndExtractCSV(TRACKS_URL),
-                            downloadAndExtractCSV(ARTISTS_URL),
-                        ])];
+                    _a.trys.push([0, 3, , 4]);
+                    return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
-                    _a = _b.sent(), tracks = _a[0], artists = _a[1];
-                    console.log('CSV files downloaded');
+                    tracks = _a.sent();
+                    console.log('CSV file downloaded');
                     filteredTracks = filterTracks(tracks);
                     console.log('Tracks filtered');
                     artistsWithTracks = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
-                    filteredArtists = filterArtists(artists, artistsWithTracks);
-                    console.log('Artists filtered');
                     // Explode the date fields in tracks
                     filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
                     console.log('Date fields exploded in tracks');
-                    return [3 /*break*/, 3];
+                    // Upload the filtered CSV files to AWS S3
+                    return [4 /*yield*/, Promise.all([
+                            uploadCSVToS3(TRACKS_FILENAME, Buffer.from(filteredTracks), BUCKET_NAME),
+                            // uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
+                        ])];
                 case 2:
-                    error_2 = _b.sent();
+                    // Upload the filtered CSV files to AWS S3
+                    _a.sent();
+                    console.log('Files uploaded successfully to S3');
+                    return [3 /*break*/, 4];
+                case 3:
+                    error_2 = _a.sent();
                     console.error('Error:', error_2);
-                    return [3 /*break*/, 3];
-                case 3: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
