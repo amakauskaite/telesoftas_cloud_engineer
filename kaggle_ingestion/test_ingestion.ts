@@ -109,40 +109,42 @@ interface DynamicJson {
   [key: string]: any; // Allows any key with any value
 }
 
-// Assign undefined if the month and/or day is missing
+// Assign null if the month and/or day is missing
+// Assuming date is in YYYY-MM-DD format and not YYYY-DD-MM
 function assignDateValues(dateParts: string[], updatedJson: DynamicJson) {
-  updatedJson['year'] = parseInt(dateParts[0], 10);
-  updatedJson['month'] = dateParts[1] ? parseInt(dateParts[1], 10) : null;
-  updatedJson['day'] = dateParts[2] ? parseInt(dateParts[2], 10) : null;
+  const [year, month = null, day = null] = dateParts.map(part => part ? parseInt(part, 10) : null);
+  
+  updatedJson['year'] = year;
+  updatedJson['month'] = month;
+  updatedJson['day'] = day;
 }
 
+// Explode the date field into separate year, month, and day fields
 function explodeDateFieldsInJson(json: DynamicJson[], dateFieldName: string): DynamicJson[] {
   return json.map((item) => {
-      const updatedItem: DynamicJson = { ...item }; // Create a shallow copy to avoid mutating the original object
+    const updatedItem: DynamicJson = { ...item }; // Shallow copy to avoid mutating the original item
 
-      const dateField = item[dateFieldName]; // Get the release date from the current object
-      // Check if the release date exists and is not undefined or null
-      if (dateField != null) {
-          let dateParts: string[];
+    const dateField = item[dateFieldName]; // Get the release date from the current object
 
-          // If the release date is a string, split it by '-'
-          if (typeof dateField === 'string') {
-              dateParts = dateField.split('-');
-          }
-          // If the release date is a number (just the year), handle it accordingly
-          else if (typeof dateField === 'number') {
-              dateParts = [dateField.toString()]; // Treat it as just a year
-          } else {
-              dateParts = []; // If the release date is neither string nor number, we can't process it
-          }
+    if (dateField != null) {
+      let dateParts: string[];
 
-          // Call the function to assign values to the updatedItem
-          assignDateValues(dateParts, updatedItem);
+      // Handle the dateField based on its type
+      if (typeof dateField === 'string') {
+        dateParts = dateField.split('-');
+      } else if (typeof dateField === 'number') {
+        dateParts = [dateField.toString()]; // Treat it as just a year
+      } else {
+        dateParts = []; // Invalid format, handle as empty
       }
 
-      return updatedItem; // Return the modified item
+      // Call the function to assign values to the updatedItem
+      assignDateValues(dateParts, updatedItem);
+    }
+
+    return updatedItem; // Return the modified item
   });
-}
+} 
 
 // Upload CSV file to S3
 async function uploadCSVToS3( fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
@@ -186,24 +188,22 @@ async function main() {
 
     const artistsWithTracks = new Set(tracks.flatMap(track => track.artists));
     console.log('4. Artists with tracks taken');
-    console.log('Row count:', artistsWithTracks.size);
-    console.log("Is first artist Uli?", artistsWithTracks.values().next().value === 'Uli')
+    // console.log('Row count:', artistsWithTracks.size);
+    // console.log("Is first artist Uli?", artistsWithTracks.values().next().value === 'Uli')
     // console.log(artistsWithTracks.values().next().value);
 
 
     // Filter the second CSV file based on artists from the filtered first file
     artists = filterArtists(artists, artistsWithTracks);
     console.log('5. File filtered');
-    console.log('Row count:', artists.length)
-    console.log(artists[0])
+    // console.log('Row count:', artists.length)
+    // console.log(artists[0])
 
-    /*
     tracks = explodeDateFieldsInJson(tracks, 'release_date')
     console.log('6. Added date-year-month to tracks');
     console.log('Row count:', tracks.length)
     console.log(tracks[0]);
     console.log(tracks[15]);
-    */
 
     /*
     // Convert filtered data back to CSV format
