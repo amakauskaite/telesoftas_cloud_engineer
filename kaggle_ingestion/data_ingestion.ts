@@ -103,6 +103,48 @@ function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
   
 }
 
+// TODO: make sure this interface makes sense and is useful
+interface DynamicJson {
+  [key: string]: any; // Allows any key with any value
+}
+
+// Assign undefined if the month and/or day is missing
+function assignDateValues(dateParts: string[], updatedJson: DynamicJson) {
+  updatedJson['year'] = parseInt(dateParts[0], 10);
+  updatedJson['month'] = dateParts[1] ? parseInt(dateParts[1], 10) : null;
+  updatedJson['day'] = dateParts[2] ? parseInt(dateParts[2], 10) : null;
+}
+
+// Add year, month, day fields to provided json for the date field passed as dateFieldName
+function explodeDateFieldsInJson(json: DynamicJson[], dateFieldName: string): DynamicJson[] {
+  return json.map((item) => {
+      const updatedItem: DynamicJson = { ...item }; // Create a shallow copy to avoid mutating the original object
+
+      const dateField = item[dateFieldName]; // Get the release date from the current object
+      // Check if the release date exists and is not undefined or null
+      if (dateField != null) {
+          let dateParts: string[];
+
+          // If the release date is a string, split it by '-'
+          // TODO: make sure actual dates and not hyphenated strings are passed
+          if (typeof dateField === 'string') {
+              dateParts = dateField.split('-');
+          }
+          // If the release date is a number (just the year), handle it accordingly
+          else if (typeof dateField === 'number') {
+              dateParts = [dateField.toString()]; // Treat it as just a year
+          } else {
+              dateParts = []; // If the release date is neither string nor number, we can't process it
+          }
+
+          // Call the function to assign values to the updatedItem
+          assignDateValues(dateParts, updatedItem);
+      }
+
+      return updatedItem; // Return the modified item
+  });
+}
+
 // Upload CSV file to S3
 async function uploadCSVToS3( fileName: string, fileContent: Buffer, bucketName: string): Promise<void> {
   const params = {
