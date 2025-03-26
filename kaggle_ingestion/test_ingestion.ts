@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';  // Import S3Client and PutObjectCommand from AWS SDK v3
+import { S3Client, PutObjectCommand} from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 import * as Papa from 'papaparse';
 import * as JSZip from 'jszip';
 import * as stream from 'stream';
@@ -114,24 +115,9 @@ async function uploadCSVToS3(fileName: string, fileContent: Buffer, bucketName: 
   }
 }
 
-// Create a readable stream from JSON data
-function createJSONStream(data: any[]): stream.Readable {
-  const readable = new stream.Readable();
-  readable._read = () => { };  // _read is required but you can leave it empty
-
-  // Convert JSON object to a stream of lines
-  const jsonStream = JSONStream.stringify();
-  jsonStream.pipe(readable);
-
-  data.forEach(item => jsonStream.write(item));
-  jsonStream.end();
-
-  return readable;
-}
-
-// Function to upload JSON in chunks
 async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: string) {
-  const dataStream = createJSONStream(fileContent); // Create a stream from the content
+  // Create a readable stream from the JSON content
+  const dataStream = createJSONStream(fileContent);
 
   const params = {
     Bucket: bucketName,
@@ -140,9 +126,24 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
     ContentType: 'application/json',
   };
 
-  const command = new PutObjectCommand(params);
-  await s3.send(command);
+  // Use the Upload class for streaming
+  const upload = new Upload({
+    client: s3,
+    params: params,
+  });
+
+  // This will handle the file upload in chunks
+  await upload.done();  // Wait until the upload completes
   console.log(`Successfully uploaded ${fileName} to S3`);
+}
+
+// Create a readable stream from JSON data
+function createJSONStream(data: any[]): stream.Readable {
+  const jsonStream = JSONStream.stringify();
+  data.forEach(item => jsonStream.write(item));
+  jsonStream.end();  // Properly end the stream
+  
+  return jsonStream;
 }
 
 async function tracks() {

@@ -8,6 +8,7 @@
   "main": "index.js",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.775.0",
+    "@aws-sdk/lib-storage": "^3.775.0",
     "ansi-escapes": "^4.3.2",
     "ansi-regex": "^5.0.1",
     "ansi-styles": "^4.3.0",

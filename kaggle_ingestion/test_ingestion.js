@@ -48,10 +48,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = require("axios");
-var client_s3_1 = require("@aws-sdk/client-s3"); // Import S3Client and PutObjectCommand from AWS SDK v3
+var client_s3_1 = require("@aws-sdk/client-s3");
+var lib_storage_1 = require("@aws-sdk/lib-storage");
 var Papa = require("papaparse");
 var JSZip = require("jszip");
-var stream = require("stream");
 var JSONStream = require("JSONStream");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
@@ -175,21 +175,9 @@ function uploadCSVToS3(fileName, fileContent, bucketName) {
         });
     });
 }
-// Create a readable stream from JSON data
-function createJSONStream(data) {
-    var readable = new stream.Readable();
-    readable._read = function () { }; // _read is required but you can leave it empty
-    // Convert JSON object to a stream of lines
-    var jsonStream = JSONStream.stringify();
-    jsonStream.pipe(readable);
-    data.forEach(function (item) { return jsonStream.write(item); });
-    jsonStream.end();
-    return readable;
-}
-// Function to upload JSON in chunks
 function uploadJSONToS3(fileName, fileContent, bucketName) {
     return __awaiter(this, void 0, void 0, function () {
-        var dataStream, params, command;
+        var dataStream, params, upload;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -200,12 +188,49 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
                         Body: dataStream, // Upload as a stream
                         ContentType: 'application/json',
                     };
-                    command = new client_s3_1.PutObjectCommand(params);
-                    return [4 /*yield*/, s3.send(command)];
+                    upload = new lib_storage_1.Upload({
+                        client: s3,
+                        params: params,
+                    });
+                    // This will handle the file upload in chunks
+                    return [4 /*yield*/, upload.done()];
                 case 1:
-                    _a.sent();
+                    // This will handle the file upload in chunks
+                    _a.sent(); // Wait until the upload completes
                     console.log("Successfully uploaded ".concat(fileName, " to S3"));
                     return [2 /*return*/];
+            }
+        });
+    });
+}
+// Create a readable stream from JSON data
+function createJSONStream(data) {
+    var jsonStream = JSONStream.stringify();
+    data.forEach(function (item) { return jsonStream.write(item); });
+    jsonStream.end(); // Properly end the stream
+    return jsonStream;
+}
+function tracks() {
+    return __awaiter(this, void 0, void 0, function () {
+        var tracks, filteredTracks;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
+                case 1:
+                    tracks = _a.sent();
+                    console.log('CSV file downloaded');
+                    filteredTracks = filterTracks(tracks);
+                    console.log('Tracks filtered');
+                    // Explode the date fields in tracks
+                    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+                    console.log('Date fields exploded in tracks');
+                    // Upload the filtered tracks file to AWS S3
+                    return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
+                case 2:
+                    // Upload the filtered tracks file to AWS S3
+                    _a.sent();
+                    // Extract artists from filtered tracks
+                    return [2 /*return*/, new Set(filteredTracks.flatMap(function (track) { return track.artists; }))];
             }
         });
     });
@@ -213,36 +238,21 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
 // Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var tracks, filteredTracks, artistsWithTracks, error_2;
+        var artistsInTracks;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 3, , 4]);
-                    return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
-                case 1:
-                    tracks = _a.sent();
-                    console.log('CSV file downloaded');
-                    filteredTracks = filterTracks(tracks);
-                    console.log('Tracks filtered');
-                    artistsWithTracks = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
-                    // Explode the date fields in tracks
-                    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
-                    console.log('Date fields exploded in tracks');
-                    // Upload the filtered CSV files to AWS S3
-                    return [4 /*yield*/, Promise.all([
-                            uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME),
-                            // uploadCSVToS3(ARTISTS_FILENAME, Buffer.from(filteredArtistsCSV), BUCKET_NAME),
-                        ])];
-                case 2:
-                    // Upload the filtered CSV files to AWS S3
-                    _a.sent();
-                    return [3 /*break*/, 4];
-                case 3:
-                    error_2 = _a.sent();
-                    console.error('Error:', error_2);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+            try {
+                artistsInTracks = tracks();
+                // Work with artists file
+                // const artists = await downloadAndExtractCSV(ARTISTS_URL);
+                // console.log('CSV file downloaded');
+                // Filter the artists based on the filtered tracks
+                // let filteredArtists = filterArtists(artists, artistsWithTracks);
+                // console.log('Artists filtered');
             }
+            catch (error) {
+                console.error('Error:', error);
+            }
+            return [2 /*return*/];
         });
     });
 }
