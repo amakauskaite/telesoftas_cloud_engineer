@@ -1,0 +1,16 @@
+id,name,popularity,duration_ms,explicit,artists,id_artists,release_date,danceability,energy,key,loudness,mode,speechiness,acousticness,instrumentalness,liveness,valence,tempo,time_signature
+35iwgR4jXetI318WEWsa1Q,Carve,6,126903,0,['Uli'],['45tIt06XoI0Iio4LBEVpls'],1922-02-22,0.645,0.445,0,-13.338,1,0.451,0.674,0.744,0.151,0.127,104.851,3
+021ht4sdgPcrDgSk7JTbKY,Capítulo 2.16 - Banquero Anarquista,0,98200,0,['Fernando Pessoa'],['14jtPCOoNZwquk5wd9DxrY'],1922-06-01,0.695,0.263,0,-22.136,1,0.957,0.797,0.0,0.148,0.655,102.009,1
+07A5yehtSnoedViJAZkNnc,Vivo para Quererte - Remasterizado,0,181640,0,['Ignacio Corsini'],['5LiOoJbxVSAMkBS2fUm3X2'],1922-03-21,0.434,0.177,1,-21.18,1,0.0512,0.994,0.0218,0.212,0.457,130.418,5
+08FmqUhxtyLTn6pAh6bk45,El Prisionero - Remasterizado,0,176907,0,['Ignacio Corsini'],['5LiOoJbxVSAMkBS2fUm3X2'],1922-03-21,0.321,0.0946,7,-27.961,1,0.0504,0.995,0.918,0.104,0.397,169.98,3
+08y9GfoqCWfOGsKdwojr5e,Lady of the Evening,0,163080,0,['Dick Haymes'],['3BiJGZsyX9sJchTqcSA7Su'],1922,0.402,0.158,3,-16.9,0,0.039,0.989,0.13,0.311,0.196,103.22,4
+0BRXJHRNGQ3W4v9frnSfhu,Ave Maria,0,178933,0,['Dick Haymes'],['3BiJGZsyX9sJchTqcSA7Su'],1922,0.227,0.261,5,-12.343,1,0.0382,0.994,0.247,0.0977,0.0539,118.891,4
+0Dd9ImXtAtGwsmsAD69KZT,La Butte Rouge,0,134467,0,['Francis Marty'],['2nuMRGzeJ5jJEKlfS7rZ0W'],1922,0.51,0.355,4,-12.833,1,0.124,0.965,0.0,0.155,0.727,85.754,5
+0IA0Hju8CAgYfV1hwhidBH,La Java,0,161427,0,['Mistinguett'],['4AxgXfD7ISvJSTObqm4aIE'],1922,0.563,0.184,4,-13.757,1,0.0512,0.993,1.55e-05,0.325,0.654,133.088,3
+0IgI1UCz84pYeVetnl1lGP,Old Fashioned Girl,0,310073,0,['Greg Fieler'],['5nWlsH5RDgFuRAiDeOFVmf'],1922,0.488,0.475,0,-16.222,0,0.0399,0.62,0.00645,0.107,0.544,139.952,4
+3eHPq58qMxBiHp8yaLEfmA,Salvame,3,174733,0,"['Jose Miguel Class - ""El Gallito de Manati""', 'Yomo Toro', 'Odilio Gonzalez']","['3yDp88hEzzhVmf1a6bw95R', '112OOUPY3pq7Hr35s3po6E', '206W0oLEf4mLQiOsFNtnH2']",1961-04-04,0.515,0.559,5,-5.092,1,0.0572,0.696,0.000465,0.311,0.753,124.819,3
+4M8a1JVcQ4gfpPx8qLIcSZ,Cenizas de Amor,0,140427,0,"['Jose Miguel Class - ""El Gallito de Manati""', 'Yomo Toro', 'Odilio Gonzalez']","['3yDp88hEzzhVmf1a6bw95R', '112OOUPY3pq7Hr35s3po6E', '206W0oLEf4mLQiOsFNtnH2']",1961-04-04,0.596,0.493,11,-6.357,0,0.0477,0.822,4.57e-05,0.228,0.689,80.864,3
+1Uukxk138MBoRiMyHTJ52A,"Ayúdame, Dios Mío",0,177027,0,['Roberto Yanes'],['36gGhh6LVf87HeDHnSQ0BD'],1961-12-09,0.478,0.414,5,-6.815,0,0.027,0.712,1.1e-05,0.34,0.453,97.776,5
+2kyht6yYIHLianPBFxx7Mt,BTS Cypher Pt.3: Killer,61,267783,0,"['BTS', 'Supreme Boi']","['3Nrfpe0tUJi4K4DXYWgMUX', '6sBiS0iWcCyMMgiYrEOxbt']",2014-08-20,0.793,0.924,4,-3.017,0,0.321,0.0217,0.0,0.644,0.665,140.03,4
+1n99s09TM651WSXOMxyoHF,Tomorrow,60,261575,0,['BTS'],['3Nrfpe0tUJi4K4DXYWgMUX'],2014-02-12,0.311,0.887,1,-2.578,0,0.277,0.00941,0.0,0.281,0.627,175.483,3
+5U1XqpEGLeDd48dDFNqQEC,MAMA,60,212275,0,['BTS'],['3Nrfpe0tUJi4K4DXYWgMUX'],2016-10-10,0.544,0.739,5,-4.818,0,0.232,0.000226,2.14e-05,0.0816,0.467,185.81,4
