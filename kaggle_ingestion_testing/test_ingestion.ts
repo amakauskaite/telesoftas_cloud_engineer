@@ -1,10 +1,9 @@
 import axios from 'axios';
-import { S3Client, PutObjectCommand} from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import * as Papa from 'papaparse';
 import * as JSZip from 'jszip';
 import * as stream from 'stream';
-import * as JSONStream from 'JSONStream';
 
 const BUCKET_NAME = 'auma-spotify';
 const ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
@@ -78,7 +77,7 @@ function explodeDateField(updatedJson: any, dateField: string) {
     // Explicitly casting to string for cases when there's only the year known
     const dateParts = String(updatedJson[dateField]).split('-'); // Always convert to string and split
     const { year, month, day } = parseDateParts(dateParts);
-    
+
     updatedJson['year'] = year;
     updatedJson['month'] = month;
     updatedJson['day'] = day;
@@ -153,7 +152,7 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
 async function processTracks() {
   console.log('Downloading tracks CSV...');
   const tracks = await downloadAndExtractCSV(TRACKS_URL);
-  
+
   console.log('Filtering tracks...');
   let filteredTracks = filterTracks(tracks);
 
@@ -183,7 +182,7 @@ async function processTracks() {
   return artistsSet;
 }
 
-async function processArtists(artistsInTracks)  {
+async function processArtists(artistsInTracks) {
   // Download CSV files
   const artists = await downloadAndExtractCSV(ARTISTS_URL);
   console.log('CSV file downloaded');
@@ -206,7 +205,7 @@ async function main() {
     //Clean memory after processing tracks
     console.log('Cleaning up memory...');
     global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
-    
+
     // Process artists after tracks are cleared
     await processArtists(artistsInTracks);
 
