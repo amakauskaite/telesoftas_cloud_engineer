@@ -76,12 +76,14 @@ var TRACKS_FILENAME = 'tracks.json';
 // Initialize AWS S3 Client (v3)
 var s3 = new client_s3_1.S3Client({
     region: 'eu-north-1',
+    // Credentials for testing, will be removed later to not be abused
     credentials: {
         accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
         secretAccessKey: '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',
     },
 });
-// Helper function to download and extract CSV from ZIP file
+// Download and extract CSV from a ZIP folder
+// Asuming that the ZIP folder only holds the one file we need
 function downloadAndExtractCSV(url) {
     return __awaiter(this, void 0, void 0, function () {
         var response, zip, csvFileName, csvFile, csvData;
@@ -107,6 +109,8 @@ function downloadAndExtractCSV(url) {
                                 dynamicTyping: true,
                                 transform: function (value, field) {
                                     if (field === 'artists') {
+                                        // Cleaning up the artists field that will be used later
+                                        // We'll need an array of strings not just a string with an array inside
                                         var cleanedValue = value.replace(/[\[\]]/g, '')
                                             .replace(/"([^"]*)"/g, function (match) { return match.replace(/,/g, '\\comma\\'); });
                                         var artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
@@ -124,7 +128,7 @@ function downloadAndExtractCSV(url) {
         });
     });
 }
-// Filter tracks to only include valid tracks (with name and duration >= 60 seconds)
+// Filter tracks to only include valid tracks (with a name and duration >= 60 seconds)
 function filterTracks(data) {
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
 }
@@ -132,7 +136,7 @@ function filterTracks(data) {
 function filterArtists(artists, artistsFromTracks) {
     return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
 }
-// Assign undefined if the month and/or day is missing
+// Create year, month, day fields; assign undefined if the month and/or day is missing
 function parseDateParts(dateParts) {
     var _a = dateParts.map(function (part) { return (part ? parseInt(part, 10) : null); }), year = _a[0], _b = _a[1], month = _b === void 0 ? null : _b, _c = _a[2], day = _c === void 0 ? null : _c;
     return { year: year, month: month, day: day };
@@ -141,7 +145,7 @@ function parseDateParts(dateParts) {
 function explodeDateField(updatedJson, dateField) {
     if (updatedJson[dateField] != null) {
         // Explicitly casting to string for cases when there's only the year known
-        var dateParts = String(updatedJson[dateField]).split('-'); // Always convert to string and split
+        var dateParts = String(updatedJson[dateField]).split('-');
         var _a = parseDateParts(dateParts), year = _a.year, month = _a.month, day = _a.day;
         updatedJson['year'] = year;
         updatedJson['month'] = month;
@@ -163,6 +167,7 @@ function stringifyDanceability(updatedJson) {
         updatedJson['danceability'] = 'Undefined';
     }
 }
+// For perfomance, a stream is used to upload data to S3
 var JSONReadableStream = /** @class */ (function (_super) {
     __extends(JSONReadableStream, _super);
     function JSONReadableStream(data) {
@@ -206,7 +211,7 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
                         params: {
                             Bucket: bucketName,
                             Key: fileName,
-                            Body: dataStream, // Proper streaming
+                            Body: dataStream,
                             ContentType: 'application/json',
                         },
                     });
@@ -219,17 +224,18 @@ function uploadJSONToS3(fileName, fileContent, bucketName) {
         });
     });
 }
+// First function of the main flow - processing tracks.csv
+// Returns a set of artists that have tracks in the filtered file
 function processTracks() {
     return __awaiter(this, void 0, void 0, function () {
         var tracks, filteredTracks, artistsSet;
-        var _a;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
                     console.log('Downloading tracks CSV...');
                     return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
-                    tracks = _b.sent();
+                    tracks = _a.sent();
                     console.log('Filtering tracks...');
                     filteredTracks = filterTracks(tracks);
                     console.log('Processing release dates and danceability...');
@@ -242,18 +248,20 @@ function processTracks() {
                     console.log('Uploading tracks to S3...');
                     return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
                 case 2:
-                    _b.sent();
+                    _a.sent();
                     artistsSet = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
-                    // Free memory (set large variables to null)
+                    // Free memory as we're not going to use tracks data anymore
                     console.log('Releasing memory...');
                     filteredTracks.length = 0;
                     tracks.length = 0;
-                    (_a = global.gc) === null || _a === void 0 ? void 0 : _a.call(global); // Force garbage collection (if allowed)
+                    // global.gc?.(); // Force garbage collection (if allowed)
                     return [2 /*return*/, artistsSet];
             }
         });
     });
 }
+// Second function of the main flow - processing artists.csv
+// Using the set of artists from tracks
 function processArtists(artistsInTracks) {
     return __awaiter(this, void 0, void 0, function () {
         var artists, filteredArtists;
@@ -275,29 +283,30 @@ function processArtists(artistsInTracks) {
         });
     });
 }
-// Main function to download, filter, and upload the CSV files
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var artistsInTracks, error_1;
-        var _a;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
-                    _b.trys.push([0, 3, , 4]);
+                    _a.trys.push([0, 3, , 4]);
                     return [4 /*yield*/, processTracks()];
                 case 1:
-                    artistsInTracks = _b.sent();
+                    artistsInTracks = _a.sent();
                     //Clean memory after processing tracks
-                    console.log('Cleaning up memory...');
-                    (_a = global.gc) === null || _a === void 0 ? void 0 : _a.call(global); // Force garbage collection (only works if --expose-gc flag is enabled)
+                    // console.log('Cleaning up memory...');
+                    // global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
                     // Process artists after tracks are cleared
                     return [4 /*yield*/, processArtists(artistsInTracks)];
                 case 2:
+                    //Clean memory after processing tracks
+                    // console.log('Cleaning up memory...');
+                    // global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
                     // Process artists after tracks are cleared
-                    _b.sent();
+                    _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_1 = _b.sent();
+                    error_1 = _a.sent();
                     console.error('Error:', error_1);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];

@@ -14,13 +14,15 @@ const TRACKS_FILENAME = 'tracks.json';
 // Initialize AWS S3 Client (v3)
 const s3 = new S3Client({
   region: 'eu-north-1',
+  // Credentials for testing, will be removed later to not be abused
   credentials: {
     accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
     secretAccessKey: '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',
   },
 });
 
-// Helper function to download and extract CSV from ZIP file
+// Download and extract CSV from a ZIP folder
+// Asuming that the ZIP folder only holds the one file we need
 async function downloadAndExtractCSV(url: string): Promise<any[]> {
   const response = await axios.get(url, { responseType: 'arraybuffer' });
   const zip = await JSZip.loadAsync(response.data);
@@ -39,6 +41,8 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
       dynamicTyping: true,
       transform: (value, field) => {
         if (field === 'artists') {
+          // Cleaning up the artists field that will be used later
+          // We'll need an array of strings not just a string with an array inside
           const cleanedValue = value.replace(/[\[\]]/g, '')
             .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
 
@@ -55,7 +59,7 @@ async function downloadAndExtractCSV(url: string): Promise<any[]> {
   });
 }
 
-// Filter tracks to only include valid tracks (with name and duration >= 60 seconds)
+// Filter tracks to only include valid tracks (with a name and duration >= 60 seconds)
 function filterTracks(data: any[]): any[] {
   return data.filter((row) => row.name !== null && row.duration_ms >= 60000);
 }
@@ -65,7 +69,7 @@ function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
   return artists.filter((artist) => artistsFromTracks.has(artist.name));
 }
 
-// Assign undefined if the month and/or day is missing
+// Create year, month, day fields; assign undefined if the month and/or day is missing
 function parseDateParts(dateParts: string[]): { year: number | null; month: number | null; day: number | null } {
   const [year, month = null, day = null] = dateParts.map(part => (part ? parseInt(part, 10) : null));
   return { year, month, day };
@@ -75,7 +79,7 @@ function parseDateParts(dateParts: string[]): { year: number | null; month: numb
 function explodeDateField(updatedJson: any, dateField: string) {
   if (updatedJson[dateField] != null) {
     // Explicitly casting to string for cases when there's only the year known
-    const dateParts = String(updatedJson[dateField]).split('-'); // Always convert to string and split
+    const dateParts = String(updatedJson[dateField]).split('-');
     const { year, month, day } = parseDateParts(dateParts);
 
     updatedJson['year'] = year;
@@ -97,6 +101,7 @@ function stringifyDanceability(updatedJson: any) {
   }
 }
 
+// For perfomance, a stream is used to upload data to S3
 class JSONReadableStream extends stream.Readable {
   private index: number;
   private jsonStarted: boolean;
@@ -140,7 +145,7 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
     params: {
       Bucket: bucketName,
       Key: fileName,
-      Body: dataStream,  // Proper streaming
+      Body: dataStream, 
       ContentType: 'application/json',
     },
   });
@@ -149,6 +154,8 @@ async function uploadJSONToS3(fileName: string, fileContent: any[], bucketName: 
   console.log(`Successfully uploaded ${fileName} to S3`);
 }
 
+// First function of the main flow - processing tracks.csv
+// Returns a set of artists that have tracks in the filtered file
 async function processTracks() {
   console.log('Downloading tracks CSV...');
   const tracks = await downloadAndExtractCSV(TRACKS_URL);
@@ -172,16 +179,16 @@ async function processTracks() {
   // Extract artists
   const artistsSet = new Set(filteredTracks.flatMap(track => track.artists));
 
-  // Free memory (set large variables to null)
+  // Free memory as we're not going to use tracks data anymore
   console.log('Releasing memory...');
   filteredTracks.length = 0;
   tracks.length = 0;
 
-  global.gc?.(); // Force garbage collection (if allowed)
-
   return artistsSet;
 }
 
+// Second function of the main flow - processing artists.csv
+// Using the set of artists from tracks
 async function processArtists(artistsInTracks) {
   // Download CSV files
   const artists = await downloadAndExtractCSV(ARTISTS_URL);
@@ -196,15 +203,10 @@ async function processArtists(artistsInTracks) {
 
 }
 
-// Main function to download, filter, and upload the CSV files
 async function main() {
   try {
     // Work with tracks file (as it's used as input to the artists file)
     const artistsInTracks = await processTracks();
-
-    //Clean memory after processing tracks
-    console.log('Cleaning up memory...');
-    global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
 
     // Process artists after tracks are cleared
     await processArtists(artistsInTracks);
