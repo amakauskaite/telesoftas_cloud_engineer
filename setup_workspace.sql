@@ -1,0 +1,5 @@
+CREATE DATABASE spotify;
+
+CREATE USER auma WITH PASSWORD 'telesoftasTask';
+
+GRANT ALL PRIVILEGES ON DATABASE spotify TO auma;
