@@ -230,6 +230,7 @@ function processTracks() {
                     filteredTracks = filterTracks(tracks);
                     console.log('Processing release dates...');
                     filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+                    // TODO: change danceability to string values!!
                     console.log('Uploading tracks to S3...');
                     return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
                 case 2:
