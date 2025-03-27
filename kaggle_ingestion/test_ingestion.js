@@ -132,32 +132,36 @@ function filterTracks(data) {
 function filterArtists(artists, artistsFromTracks) {
     return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
 }
-// Helper function to assign year, month, and day from date string
-function assignDateValues(dateParts, updatedJson) {
-    var _a = dateParts.map(function (part) { return part ? parseInt(part, 10) : null; }), year = _a[0], _b = _a[1], month = _b === void 0 ? null : _b, _c = _a[2], day = _c === void 0 ? null : _c;
-    updatedJson['year'] = year;
-    updatedJson['month'] = month;
-    updatedJson['day'] = day;
+// Assign undefined if the month and/or day is missing
+function parseDateParts(dateParts) {
+    var _a = dateParts.map(function (part) { return (part ? parseInt(part, 10) : null); }), year = _a[0], _b = _a[1], month = _b === void 0 ? null : _b, _c = _a[2], day = _c === void 0 ? null : _c;
+    return { year: year, month: month, day: day };
 }
-// Explode the date field into separate year, month, and day fields
-function explodeDateFieldsInJson(json, dateFieldName) {
-    return json.map(function (item) {
-        var updatedItem = __assign({}, item);
-        var dateField = item[dateFieldName];
-        if (dateField) {
-            // Always convert the dateField to a string and split by '-'
-            var dateParts = dateField.toString().split('-');
-            // Assign the extracted values (year, month, day) to the updatedItem
-            assignDateValues(dateParts, updatedItem);
-        }
-        else {
-            // Handle cases where dateField is invalid or missing
-            updatedItem['year'] = null;
-            updatedItem['month'] = null;
-            updatedItem['day'] = null;
-        }
-        return updatedItem;
-    });
+// Generic function to explode a date field into year, month, and day
+function explodeDateField(updatedJson, dateField) {
+    if (updatedJson[dateField] != null) {
+        // Explicitly casting to string for cases when there's only the year known
+        var dateParts = String(updatedJson[dateField]).split('-'); // Always convert to string and split
+        var _a = parseDateParts(dateParts), year = _a.year, month = _a.month, day = _a.day;
+        updatedJson['year'] = year;
+        updatedJson['month'] = month;
+        updatedJson['day'] = day;
+    }
+}
+// Update danceability value
+function stringifyDanceability(updatedJson) {
+    if (updatedJson['danceability'] >= 0 && updatedJson['danceability'] < 0.5) {
+        updatedJson['danceability'] = 'Low';
+    }
+    else if (updatedJson['danceability'] >= 0.5 && updatedJson['danceability'] <= 0.6) {
+        updatedJson['danceability'] = 'Medium';
+    }
+    else if (updatedJson['danceability'] > 0.6 && updatedJson['danceability'] <= 1) {
+        updatedJson['danceability'] = 'High';
+    }
+    else {
+        updatedJson['danceability'] = 'Undefined';
+    }
 }
 var JSONReadableStream = /** @class */ (function (_super) {
     __extends(JSONReadableStream, _super);
@@ -228,9 +232,13 @@ function processTracks() {
                     tracks = _b.sent();
                     console.log('Filtering tracks...');
                     filteredTracks = filterTracks(tracks);
-                    console.log('Processing release dates...');
-                    filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
-                    // TODO: change danceability to string values!!
+                    console.log('Processing release dates and danceability...');
+                    filteredTracks = filteredTracks.map(function (item) {
+                        var updatedItem = __assign({}, item);
+                        explodeDateField(updatedItem, 'release_date'); // Explode release date
+                        stringifyDanceability(updatedItem);
+                        return updatedItem;
+                    });
                     console.log('Uploading tracks to S3...');
                     return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
                 case 2:

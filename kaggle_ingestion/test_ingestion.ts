@@ -66,35 +66,36 @@ function filterArtists(artists: any[], artistsFromTracks: Set<string>): any[] {
   return artists.filter((artist) => artistsFromTracks.has(artist.name));
 }
 
-// Helper function to assign year, month, and day from date string
-function assignDateValues(dateParts: string[], updatedJson: any) {
-  const [year, month = null, day = null] = dateParts.map(part => part ? parseInt(part, 10) : null);
-  updatedJson['year'] = year;
-  updatedJson['month'] = month;
-  updatedJson['day'] = day;
+// Assign undefined if the month and/or day is missing
+function parseDateParts(dateParts: string[]): { year: number | null; month: number | null; day: number | null } {
+  const [year, month = null, day = null] = dateParts.map(part => (part ? parseInt(part, 10) : null));
+  return { year, month, day };
 }
 
-// Explode the date field into separate year, month, and day fields
-function explodeDateFieldsInJson(json: any[], dateFieldName: string): any[] {
-  return json.map((item) => {
-    const updatedItem = { ...item };
-    const dateField = item[dateFieldName];
+// Generic function to explode a date field into year, month, and day
+function explodeDateField(updatedJson: any, dateField: string) {
+  if (updatedJson[dateField] != null) {
+    // Explicitly casting to string for cases when there's only the year known
+    const dateParts = String(updatedJson[dateField]).split('-'); // Always convert to string and split
+    const { year, month, day } = parseDateParts(dateParts);
+    
+    updatedJson['year'] = year;
+    updatedJson['month'] = month;
+    updatedJson['day'] = day;
+  }
+}
 
-    if (dateField) {
-      // Always convert the dateField to a string and split by '-'
-      const dateParts = dateField.toString().split('-');
-
-      // Assign the extracted values (year, month, day) to the updatedItem
-      assignDateValues(dateParts, updatedItem);
-    } else {
-      // Handle cases where dateField is invalid or missing
-      updatedItem['year'] = null;
-      updatedItem['month'] = null;
-      updatedItem['day'] = null;
-    }
-
-    return updatedItem;
-  });
+// Update danceability value
+function stringifyDanceability(updatedJson: any) {
+  if (updatedJson['danceability'] >= 0 && updatedJson['danceability'] < 0.5) {
+    updatedJson['danceability'] = 'Low';
+  } else if (updatedJson['danceability'] >= 0.5 && updatedJson['danceability'] <= 0.6) {
+    updatedJson['danceability'] = 'Medium';
+  } else if (updatedJson['danceability'] > 0.6 && updatedJson['danceability'] <= 1) {
+    updatedJson['danceability'] = 'High';
+  } else {
+    updatedJson['danceability'] = 'Undefined';
+  }
 }
 
 class JSONReadableStream extends stream.Readable {
@@ -156,10 +157,15 @@ async function processTracks() {
   console.log('Filtering tracks...');
   let filteredTracks = filterTracks(tracks);
 
-  console.log('Processing release dates...');
-  filteredTracks = explodeDateFieldsInJson(filteredTracks, 'release_date');
+  console.log('Processing release dates and danceability...');
+  filteredTracks = filteredTracks.map((item) => {
+    const updatedItem: any = { ...item };
 
-  // TODO: change danceability to string values!!
+    explodeDateField(updatedItem, 'release_date');  // Explode release date
+    stringifyDanceability(updatedItem);
+
+    return updatedItem;
+  });
 
   console.log('Uploading tracks to S3...');
   await uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME);
