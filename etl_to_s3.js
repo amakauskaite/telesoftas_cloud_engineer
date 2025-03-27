@@ -76,11 +76,6 @@ var TRACKS_FILENAME = 'tracks.json';
 // Initialize AWS S3 Client (v3)
 var s3 = new client_s3_1.S3Client({
     region: 'eu-north-1',
-    // Credentials for testing, will be removed later to not be abused
-    credentials: {
-        accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
-        secretAccessKey: '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',
-    },
 });
 // Download and extract CSV from a ZIP folder
 // Asuming that the ZIP folder only holds the one file we need
@@ -254,7 +249,6 @@ function processTracks() {
                     console.log('Releasing memory...');
                     filteredTracks.length = 0;
                     tracks.length = 0;
-                    // global.gc?.(); // Force garbage collection (if allowed)
                     return [2 /*return*/, artistsSet];
             }
         });
@@ -293,15 +287,9 @@ function main() {
                     return [4 /*yield*/, processTracks()];
                 case 1:
                     artistsInTracks = _a.sent();
-                    //Clean memory after processing tracks
-                    // console.log('Cleaning up memory...');
-                    // global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
                     // Process artists after tracks are cleared
                     return [4 /*yield*/, processArtists(artistsInTracks)];
                 case 2:
-                    //Clean memory after processing tracks
-                    // console.log('Cleaning up memory...');
-                    // global.gc?.(); // Force garbage collection (only works if --expose-gc flag is enabled)
                     // Process artists after tracks are cleared
                     _a.sent();
                     return [3 /*break*/, 4];
