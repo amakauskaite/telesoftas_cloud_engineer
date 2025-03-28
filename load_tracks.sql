@@ -115,8 +115,8 @@ VALUES
 ('idD', 15000, ARRAY['Indie'], 'Boy''s Choir', 65),
 ('idE', 15000, ARRAY['Indie'], 'artist 1', 65),
 ('idF', 120, null, 'artist''s brother', 10),
-('idG', 11000, ARRAY['Pop'], 'my "special" artist', 40),
-('idH', 12000, null, 'Solo artist', 42);
+('idG', null, ARRAY['Pop'], 'my "special" artist', 40),
+('idH', 12000, null, 'Solo artist, feat. other solo artist', 42);
 
 -- Truncate tables, if needed
 -- TRUNCATE TABLE music.artists;
