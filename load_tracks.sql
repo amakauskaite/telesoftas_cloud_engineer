@@ -77,8 +77,8 @@ INSERT INTO music.tracks (
     0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 2023, 6, 15
 ),
 (
-    'track2', 'Song Two', 70, 180000, TRUE, ARRAY['Name "Nickname" Surname'], ARRAY['idC'], '2018-03-21', 'Medium', 0.6, 3, -5.0, FALSE,
-    0.08, 0.2, 0.0, 0.15, 0.6, 98.7, 3, 2018, 3, 21
+    'track2', 'Song Two', 70, 180000, TRUE, ARRAY['Name "Nickname" Surname'], ARRAY['idC'], '2015-03-21', 'Medium', 0.6, 3, -5.0, FALSE,
+    0.08, 0.2, 0.0, 0.15, 0.6, 98.7, 3, 2015, 3, 21
 ),
 (
     'track3', 'Song Three', 60, 240000, FALSE, ARRAY['Boy''s Choir'], ARRAY['idD'], '2015-11-10', 'Low', 0.4, 7, -8.3, TRUE,
@@ -89,17 +89,12 @@ INSERT INTO music.tracks (
     0.03, 0.12, 0.05, 0.20, 0.8, 130.1, 4, 2020, 7, 5
 ),
 (
-    'track5', 'Song Five', 50, 150000, FALSE, ARRAY['Solo Artist'], ARRAY['idH'], '2010-01-25', 'Low', 0.3, 2, -10.1, TRUE,
-    0.06, 0.25, 0.0, 0.10, 0.4, 88.4, 3, 2010, 1, 25
-);
-
-INSERT INTO music.tracks (
-    id, name, popularity, duration_ms, explicit, artists, id_artists, release_date, danceability, energy, key, loudness, mode, 
-    speechiness, acousticness, instrumentalness, liveness, valence, tempo, time_signature, year, month, day
-) VALUES 
+    'track5', 'Song Five', 50, 150000, FALSE, ARRAY['Solo Artist'], ARRAY['idH'], '2020-01-25', 'Low', 0.3, 2, -10.1, TRUE,
+    0.06, 0.25, 0.0, 0.10, 0.4, 88.4, 3, 2020, 1, 25
+),
 (
-    'track6', 'Song Six', 85, 210000, FALSE, ARRAY['Artist A'], ARRAY['idA'], '2024-06-15', 'High', 0.8, 5, -6.2, TRUE,
-    0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 2024, 6, 15
+    'track6', 'Song Six', 85, 210000, FALSE, ARRAY['Artist A'], ARRAY['idA'], '2020-06-15', 'High', 0.8, 5, -6.2, TRUE,
+    0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 2020, 6, 15
 ),
 (
     'track7', 'Song Seven', 85, 210000, FALSE, ARRAY['Artist A'], ARRAY['idA'], '1922', 'High', 0.8, 5, -6.2, TRUE,
