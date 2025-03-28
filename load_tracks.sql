@@ -1,3 +1,4 @@
+-- Create tables
 CREATE TABLE tracks (
 	id TEXT PRIMARY KEY,
 	name TEXT,
@@ -32,6 +33,7 @@ CREATE TABLE artists (
 	popularity SMALLINT
 );
 
+-- Attempt to import data from json files
 CREATE TEMP TABLE temp_json_import_tracks (data JSONB);
 
 COPY temp_json_import_tracks FROM 'C:/Program Files/PostgreSQL/17/data/tracks.json';
@@ -63,5 +65,60 @@ SELECT
 	(data->>'day')::SMALLINT
 FROM temp_json_import_tracks;
 
+-- Fill tables with temporary test data
 
+
+INSERT INTO music.tracks (
+    id, name, popularity, duration_ms, explicit, artists, id_artists, release_date, danceability, energy, key, loudness, mode, 
+    speechiness, acousticness, instrumentalness, liveness, valence, tempo, time_signature, year, month, day
+) VALUES 
+(
+    'track1', 'Song One', 85, 210000, FALSE, ARRAY['Artist A', 'Artist B'], ARRAY['idA', 'idB'], '2023-06-15', 'High', 0.8, 5, -6.2, TRUE,
+    0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 2023, 6, 15
+),
+(
+    'track2', 'Song Two', 70, 180000, TRUE, ARRAY['Name "Nickname" Surname'], ARRAY['idC'], '2018-03-21', 'Medium', 0.6, 3, -5.0, FALSE,
+    0.08, 0.2, 0.0, 0.15, 0.6, 98.7, 3, 2018, 3, 21
+),
+(
+    'track3', 'Song Three', 60, 240000, FALSE, ARRAY['Boy''s Choir'], ARRAY['idD'], '2015-11-10', 'Low', 0.4, 7, -8.3, TRUE,
+    0.02, 0.5, 0.1, 0.18, 0.55, 105.2, 4, 2015, 11, 10
+),
+(
+    'track4', 'Song Four', 90, 200000, TRUE, ARRAY['artist 1', 'artist''s brother', 'my "special" artist'], ARRAY['idE', 'idF', 'idG'], '2020-07-05', 'High', 0.85, 8, -4.5, FALSE,
+    0.03, 0.12, 0.05, 0.20, 0.8, 130.1, 4, 2020, 7, 5
+),
+(
+    'track5', 'Song Five', 50, 150000, FALSE, ARRAY['Solo Artist'], ARRAY['idH'], '2010-01-25', 'Low', 0.3, 2, -10.1, TRUE,
+    0.06, 0.25, 0.0, 0.10, 0.4, 88.4, 3, 2010, 1, 25
+);
+
+INSERT INTO music.tracks (
+    id, name, popularity, duration_ms, explicit, artists, id_artists, release_date, danceability, energy, key, loudness, mode, 
+    speechiness, acousticness, instrumentalness, liveness, valence, tempo, time_signature, year, month, day
+) VALUES 
+(
+    'track6', 'Song Six', 85, 210000, FALSE, ARRAY['Artist A'], ARRAY['idA'], '2024-06-15', 'High', 0.8, 5, -6.2, TRUE,
+    0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 2024, 6, 15
+),
+(
+    'track7', 'Song Seven', 85, 210000, FALSE, ARRAY['Artist A'], ARRAY['idA'], '1922', 'High', 0.8, 5, -6.2, TRUE,
+    0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 1922, null, null
+);
+
+-- Inserting the artists into the artists table
+INSERT INTO music.artists (id, followers, genres, name, popularity)
+VALUES
+('idA', 10000, ARRAY['Pop', 'Rock'], 'Artist A', 80),
+('idB', 5000, ARRAY['Hip-Hop'], 'Artist B', 75),
+('idC', 20000, ARRAY['Classical'], 'Name "Nickname" Surname', 90),
+('idD', 15000, ARRAY['Indie'], 'Boy''s Choir', 65),
+('idE', 15000, ARRAY['Indie'], 'artist 1', 65),
+('idF', 120, null, 'artist''s brother', 10),
+('idG', 11000, ARRAY['Pop'], 'my "special" artist', 40),
+('idH', 12000, null, 'Solo artist', 42);
+
+-- Truncate tables, if needed
+-- TRUNCATE TABLE music.artists;
+-- TRUNCATE TABLE music.tracks;
 
