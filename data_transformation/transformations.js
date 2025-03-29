@@ -5,6 +5,7 @@ exports.filterArtists = filterArtists;
 exports.parseDateParts = parseDateParts;
 exports.explodeDateField = explodeDateField;
 exports.stringifyDanceability = stringifyDanceability;
+exports.transformCSVField = transformCSVField;
 // Filter tracks to only include valid tracks (with a name and duration >= 60 seconds)
 function filterTracks(data) {
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
@@ -47,4 +48,19 @@ function stringifyDanceability(updatedJson) {
     else {
         updatedJson['danceability'] = 'Undefined';
     }
+}
+function transformCSVField(value, field) {
+    if (field === 'artists' && value) {
+        var cleanedValue = value.replace(/[\[\]]/g, '')
+            .replace(/"([^"]*)"/g, function (match) { return match.replace(/,/g, '\\comma\\'); });
+        var matches = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g);
+        return matches ?
+            matches.map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); })
+                .map(function (item) { return item.replace(/\\comma\\/g, ','); })
+            : [];
+    }
+    if (!value)
+        return [];
+    else
+        return value;
 }

@@ -4,6 +4,7 @@ import * as JSZip from 'jszip';
 import { Upload } from '@aws-sdk/lib-storage';
 import * as stream from 'stream';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import * as trans from './transformations';
 
 // Download and extract CSV from a ZIP folder
 // Asuming that the ZIP folder only holds the one file we need
@@ -23,21 +24,7 @@ export async function downloadAndExtractCSV(url: string): Promise<any[]> {
         Papa.parse(csvData, {
             header: true,
             dynamicTyping: true,
-            transform: (value, field) => {
-                // Transforms artists array saved in a string (as per CSV convention)
-                // to a javascript object array-friendly format
-                // Might be a good idea to update all arrays, if later the output will be a json file.
-                if (field === 'artists') {
-                    const cleanedValue = value.replace(/[\[\]]/g, '')
-                        .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
-
-                    let artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
-                        .map(item => item.trim().replace(/^['"]|['"]$/g, ''))
-                        .map(item => item.replace(/\\comma\\/g, ','));
-                    return artistsArray;
-                }
-                return value;
-            },
+            transform: trans.transformCSVField,
             complete: (result) => resolve(result.data),
             error: (error) => reject(`Error parsing CSV: ${error.message}`),
         });

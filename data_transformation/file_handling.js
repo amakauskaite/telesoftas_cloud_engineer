@@ -58,6 +58,7 @@ var Papa = require("papaparse");
 var JSZip = require("jszip");
 var lib_storage_1 = require("@aws-sdk/lib-storage");
 var stream = require("stream");
+var trans = require("./transformations");
 // Download and extract CSV from a ZIP folder
 // Asuming that the ZIP folder only holds the one file we need
 function downloadAndExtractCSV(url) {
@@ -83,19 +84,7 @@ function downloadAndExtractCSV(url) {
                             Papa.parse(csvData, {
                                 header: true,
                                 dynamicTyping: true,
-                                transform: function (value, field) {
-                                    if (field === 'artists') {
-                                        // Cleaning up the artists field that will be used later
-                                        // We'll need an array of strings not just a string with an array inside
-                                        var cleanedValue = value.replace(/[\[\]]/g, '')
-                                            .replace(/"([^"]*)"/g, function (match) { return match.replace(/,/g, '\\comma\\'); });
-                                        var artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
-                                            .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); })
-                                            .map(function (item) { return item.replace(/\\comma\\/g, ','); });
-                                        return artistsArray;
-                                    }
-                                    return value;
-                                },
+                                transform: trans.transformCSVField,
                                 complete: function (result) { return resolve(result.data); },
                                 error: function (error) { return reject("Error parsing CSV: ".concat(error.message)); },
                             });

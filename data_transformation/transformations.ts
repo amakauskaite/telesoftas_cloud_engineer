@@ -44,3 +44,20 @@ export function stringifyDanceability(updatedJson: any) {
     updatedJson['danceability'] = 'Undefined';
   }
 }
+
+export function transformCSVField(value: string, field: string): any {
+  if (field === 'artists' && value) {
+      const cleanedValue = value.replace(/[\[\]]/g, '')
+          .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
+
+      const matches = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g);
+      return matches ?
+          matches.map(item => item.trim().replace(/^['"]|['"]$/g, ''))
+          .map(item => item.replace(/\\comma\\/g, ','))
+          : [];
+  }
+  if (!value)
+    return [];
+  else
+    return value;
+}
