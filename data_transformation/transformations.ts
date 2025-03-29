@@ -29,11 +29,16 @@ export function explodeDateField(updatedJson: any, dateField: string) {
 
 // Update danceability value
 export function stringifyDanceability(updatedJson: any) {
-  if (updatedJson['danceability'] >= 0 && updatedJson['danceability'] < 0.5) {
+
+  const danceability = updatedJson['danceability'];
+
+  if (danceability === null || danceability === undefined || isNaN(danceability)) {
+    updatedJson['danceability'] = 'Undefined';
+  } else if (danceability >= 0 && danceability < 0.5) {
     updatedJson['danceability'] = 'Low';
-  } else if (updatedJson['danceability'] >= 0.5 && updatedJson['danceability'] <= 0.6) {
+  } else if (danceability >= 0.5 && danceability <= 0.6) {
     updatedJson['danceability'] = 'Medium';
-  } else if (updatedJson['danceability'] > 0.6 && updatedJson['danceability'] <= 1) {
+  } else if (danceability > 0.6 && danceability <= 1) {
     updatedJson['danceability'] = 'High';
   } else {
     updatedJson['danceability'] = 'Undefined';
