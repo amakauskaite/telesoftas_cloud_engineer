@@ -139,3 +139,55 @@ describe("explodeDateField", () => {
         expect(json_input).toEqual(json_expected_output);
     });
 });
+
+describe("stringifyDanceability", () => {
+    it("should update the original json's danceability value to a string value 'Low', when the value is between [0; 0.5)", () => {
+        const json_input = { id: 1, danceability: 0.3 };
+
+        const json_expected_output = { id: 1, danceability: "Low" };
+
+        trans.stringifyDanceability(json_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should update the original json's danceability value to a string value 'Medium', when the value is between [0.5; 0.6]", () => {
+        const json_input = { id: 1, danceability: 0.55 };
+
+        const json_expected_output = { id: 1, danceability: "Medium" };
+
+        trans.stringifyDanceability(json_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should update the original json's danceability value to a string value 'High', when the value is between (0.6; 1]", () => {
+        const json_input = { id: 1, danceability: 0.7 };
+
+        const json_expected_output = { id: 1, danceability: "High" };
+
+        trans.stringifyDanceability(json_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should update the original json's danceability value to a string value 'Undefined', when the value is not between [0; 1]", () => {
+        const json_input = { id: 1, danceability: 1.1 };
+
+        const json_expected_output = { id: 1, danceability: "Undefined" };
+
+        trans.stringifyDanceability(json_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should update the original json's danceability value to a string value 'Undefined', when the value is null", () => {
+        const json_input = { id: 1, danceability: null };
+
+        const json_expected_output = { id: 1, danceability: "Undefined" };
+
+        trans.stringifyDanceability(json_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+});
