@@ -191,3 +191,46 @@ describe("stringifyDanceability", () => {
         expect(json_input).toEqual(json_expected_output);
     });
 });
+
+describe('transformCSVField', () => {
+    it('should correctly transform a CSV field containing a list of artists', () => {
+        const input = `["Artist One", "Artist Two"]`;
+        const expectedOutput = ["Artist One", "Artist Two"];
+
+        expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
+    });
+
+    it('should correctly handle artist names with commas inside quotes', () => {
+        const input = `["John, Doe", "Jane Smith"]`;
+        const expectedOutput = ["John, Doe", "Jane Smith"];
+
+        expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
+    });
+
+    it('should correctly handle single artist without brackets', () => {
+        const input = `"Solo Artist"`;
+        const expectedOutput = ["Solo Artist"];
+
+        expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
+    });
+
+    it('should return the value unchanged for non-artist fields', () => {
+        const input = "Some random value";
+        expect(trans.transformCSVField(input, 'some_other_field')).toBe(input);
+    });
+
+    it('should return an empty array when given an empty string for the artists field', () => {
+        expect(trans.transformCSVField("", "artists")).toEqual([]);
+    });
+    
+    it('should return an empty array when given null for the artists field', () => {
+        expect(trans.transformCSVField(null as any, "artists")).toEqual([]);
+    })
+
+    it('should correctly process an artist name containing quotes', () => {
+        const input = `["My \"Special\" Artist", "Normal Artist"]`;
+        const expectedOutput = ['My "Special" Artist', 'Normal Artist'];
+
+        expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
+    });
+});
