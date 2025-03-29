@@ -52,14 +52,16 @@ export function transformCSVField(value: string, field: string): any {
   }
 
   if (field === 'artists') {
-    const cleanedValue = value.replace(/^\[|\]$/g, ''); // Remove square brackets around the array
+    // Cleaning up the artists field that will be used later
+    // We'll need an array of strings not just a string with an array inside
+    const cleanedValue = value.replace(/[\[\]]/g, '')
+      .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
 
-    // Match quoted or unquoted values correctly, including handling escaped quotes and commas inside quotes
-    const matches = cleanedValue.match(/"([^"\\]*(\\.[^"\\]*)*)"|'([^'\\]*(\\.[^'\\]*)*)'|[^,]+/g);
-
-    return matches
-      ? matches.map(item => item.trim().replace(/^['"]|['"]$/g, '').replace(/\\"/g, '"'))
-      : [];
+    const matches = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
+    
+    return matches ?
+    matches.map(item => item.trim().replace(/^['"]|['"]$/g, '')).map(item => item.replace(/\\comma\\/g, ','))
+    : [];
   }
   return value;  // If the field is not 'artists', return the original value
 }
