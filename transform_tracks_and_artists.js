@@ -97,16 +97,19 @@ function processArtists(artistsInTracks, s3) {
         var artists, filteredArtists;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, file.downloadAndExtractCSV(ARTISTS_URL)];
+                case 0:
+                    // Download CSV files
+                    console.log('Downloading artists CSV...');
+                    return [4 /*yield*/, file.downloadAndExtractCSV(ARTISTS_URL)];
                 case 1:
                     artists = _a.sent();
-                    console.log('CSV file downloaded');
+                    // Filter the artists based on the filtered tracks
+                    console.log('Filtering artists with tracks...');
                     filteredArtists = trans.filterArtists(artists, artistsInTracks);
-                    console.log('Artists filtered');
                     // Upload the filtered tracks file to AWS S3
+                    console.log('Uploading artists to S3...');
                     return [4 /*yield*/, file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME, s3)];
                 case 2:
-                    // Upload the filtered tracks file to AWS S3
                     _a.sent();
                     return [2 /*return*/];
             }

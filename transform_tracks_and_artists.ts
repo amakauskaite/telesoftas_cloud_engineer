@@ -45,14 +45,15 @@ async function processTracks(s3: S3Client) {
 // Using the set of artists from tracks
 async function processArtists(artistsInTracks, s3: S3Client) {
   // Download CSV files
+  console.log('Downloading artists CSV...');
   const artists = await file.downloadAndExtractCSV(ARTISTS_URL);
-  console.log('CSV file downloaded');
 
   // Filter the artists based on the filtered tracks
+  console.log('Filtering artists with tracks...');
   let filteredArtists = trans.filterArtists(artists, artistsInTracks);
-  console.log('Artists filtered');
 
   // Upload the filtered tracks file to AWS S3
+  console.log('Uploading artists to S3...');
   await file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME, s3);
 
 }
