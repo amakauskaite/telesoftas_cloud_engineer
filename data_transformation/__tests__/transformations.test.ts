@@ -88,3 +88,54 @@ describe("parseDateParts", () => {
         expect(trans.parseDateParts(input)).toEqual({ year, month, day });
     });
 });
+
+
+describe("explodeDateField", () => {
+    it("should update the original json with 3 additional fields: year, month, day, assigned with values based on provided date field", () => {
+        const json_input = { id: 1, release_date: '2013-06-13', record_date: '2013-06-12' };
+
+        const dateField_input = 'release_date';
+
+        const json_expected_output = { id: 1, release_date: '2013-06-13', record_date: '2013-06-12', year: 2013, month: 6, day: 13 };
+
+        trans.explodeDateField(json_input, dateField_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should update the original json with 3 additional fields: year, month, day, assigned with null values for missing day", () => {
+        const json_input = { id: 1, release_date: '2013-06' };
+
+        const dateField_input = 'release_date';
+
+        const json_expected_output = { id: 1, release_date: '2013-06', year: 2013, month: 6, day: null };
+
+        trans.explodeDateField(json_input, dateField_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should update the original json with 3 additional fields: year, month, day, assigned with null values for missing month and day", () => {
+        const json_input = { id: 2, release_date: '2025' };
+
+        const dateField_input = 'release_date';
+
+        const json_expected_output = { id: 2, release_date: '2025', year: 2025, month: null, day: null };
+
+        trans.explodeDateField(json_input, dateField_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+
+    it("should not add the year/month/day fields to the json if dateField is null", () => {
+        const json_input = { id: 1, release_date: null };
+
+        const dateField_input = 'release_date';
+
+        const json_expected_output = { id: 1, release_date: null };
+
+        trans.explodeDateField(json_input, dateField_input);
+
+        expect(json_input).toEqual(json_expected_output);
+    });
+});
