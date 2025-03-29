@@ -1,19 +1,4 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -62,67 +47,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var axios_1 = require("axios");
 var client_s3_1 = require("@aws-sdk/client-s3");
-var lib_storage_1 = require("@aws-sdk/lib-storage");
-var Papa = require("papaparse");
-var JSZip = require("jszip");
-var stream = require("stream");
+var file = require("./file_handling");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 var ARTISTS_FILENAME = 'artists.json';
 var TRACKS_FILENAME = 'tracks.json';
-// Initialize AWS S3 Client (v3)
-var s3 = new client_s3_1.S3Client({
-    region: 'eu-north-1',
-});
-// Download and extract CSV from a ZIP folder
-// Asuming that the ZIP folder only holds the one file we need
-function downloadAndExtractCSV(url) {
-    return __awaiter(this, void 0, void 0, function () {
-        var response, zip, csvFileName, csvFile, csvData;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, axios_1.default.get(url, { responseType: 'arraybuffer' })];
-                case 1:
-                    response = _a.sent();
-                    return [4 /*yield*/, JSZip.loadAsync(response.data)];
-                case 2:
-                    zip = _a.sent();
-                    csvFileName = Object.keys(zip.files).find(function (fileName) { return fileName.endsWith('.csv'); });
-                    if (!csvFileName) {
-                        throw new Error('No CSV file found in the ZIP archive.');
-                    }
-                    csvFile = zip.files[csvFileName];
-                    return [4 /*yield*/, csvFile.async('text')];
-                case 3:
-                    csvData = _a.sent();
-                    return [2 /*return*/, new Promise(function (resolve, reject) {
-                            Papa.parse(csvData, {
-                                header: true,
-                                dynamicTyping: true,
-                                transform: function (value, field) {
-                                    if (field === 'artists') {
-                                        // Cleaning up the artists field that will be used later
-                                        // We'll need an array of strings not just a string with an array inside
-                                        var cleanedValue = value.replace(/[\[\]]/g, '')
-                                            .replace(/"([^"]*)"/g, function (match) { return match.replace(/,/g, '\\comma\\'); });
-                                        var artistsArray = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
-                                            .map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); })
-                                            .map(function (item) { return item.replace(/\\comma\\/g, ','); });
-                                        return artistsArray;
-                                    }
-                                    return value;
-                                },
-                                complete: function (result) { return resolve(result.data); },
-                                error: function (error) { return reject("Error parsing CSV: ".concat(error.message)); },
-                            });
-                        })];
-            }
-        });
-    });
-}
 // Filter tracks to only include valid tracks (with a name and duration >= 60 seconds)
 function filterTracks(data) {
     return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
@@ -162,73 +93,16 @@ function stringifyDanceability(updatedJson) {
         updatedJson['danceability'] = 'Undefined';
     }
 }
-// For perfomance, a stream is used to upload data to S3
-var JSONReadableStream = /** @class */ (function (_super) {
-    __extends(JSONReadableStream, _super);
-    function JSONReadableStream(data) {
-        var _this = _super.call(this) || this;
-        _this.index = 0;
-        _this.jsonStarted = false;
-        _this.data = data;
-        return _this;
-    }
-    JSONReadableStream.prototype._read = function () {
-        if (!this.jsonStarted) {
-            this.push("["); // Start JSON array
-            this.jsonStarted = true;
-        }
-        if (this.index < this.data.length) {
-            var chunk = JSON.stringify(this.data[this.index]);
-            if (this.index > 0) {
-                this.push("," + chunk); // Add commas between objects
-            }
-            else {
-                this.push(chunk);
-            }
-            this.index++;
-        }
-        else {
-            this.push("]"); // Close JSON array
-            this.push(null); // End stream
-        }
-    };
-    return JSONReadableStream;
-}(stream.Readable));
-function uploadJSONToS3(fileName, fileContent, bucketName) {
-    return __awaiter(this, void 0, void 0, function () {
-        var dataStream, upload;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    dataStream = new JSONReadableStream(fileContent);
-                    upload = new lib_storage_1.Upload({
-                        client: s3,
-                        params: {
-                            Bucket: bucketName,
-                            Key: fileName,
-                            Body: dataStream,
-                            ContentType: 'application/json',
-                        },
-                    });
-                    return [4 /*yield*/, upload.done()];
-                case 1:
-                    _a.sent();
-                    console.log("Successfully uploaded ".concat(fileName, " to S3"));
-                    return [2 /*return*/];
-            }
-        });
-    });
-}
 // First function of the main flow - processing tracks.csv
 // Returns a set of artists that have tracks in the filtered file
-function processTracks() {
+function processTracks(s3) {
     return __awaiter(this, void 0, void 0, function () {
         var tracks, filteredTracks, artistsSet;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     console.log('Downloading tracks CSV...');
-                    return [4 /*yield*/, downloadAndExtractCSV(TRACKS_URL)];
+                    return [4 /*yield*/, file.downloadAndExtractCSV(TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
                     console.log('Filtering tracks...');
@@ -241,7 +115,7 @@ function processTracks() {
                         return updatedItem;
                     });
                     console.log('Uploading tracks to S3...');
-                    return [4 /*yield*/, uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME)];
+                    return [4 /*yield*/, file.uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME, s3)];
                 case 2:
                     _a.sent();
                     artistsSet = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
@@ -256,19 +130,19 @@ function processTracks() {
 }
 // Second function of the main flow - processing artists.csv
 // Using the set of artists from tracks
-function processArtists(artistsInTracks) {
+function processArtists(artistsInTracks, s3) {
     return __awaiter(this, void 0, void 0, function () {
         var artists, filteredArtists;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, downloadAndExtractCSV(ARTISTS_URL)];
+                case 0: return [4 /*yield*/, file.downloadAndExtractCSV(ARTISTS_URL)];
                 case 1:
                     artists = _a.sent();
                     console.log('CSV file downloaded');
                     filteredArtists = filterArtists(artists, artistsInTracks);
                     console.log('Artists filtered');
                     // Upload the filtered tracks file to AWS S3
-                    return [4 /*yield*/, uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME)];
+                    return [4 /*yield*/, file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME, s3)];
                 case 2:
                     // Upload the filtered tracks file to AWS S3
                     _a.sent();
@@ -279,25 +153,35 @@ function processArtists(artistsInTracks) {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var artistsInTracks, error_1;
+        var s3, artistsInTracks, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
-                    return [4 /*yield*/, processTracks()];
+                    s3 = new client_s3_1.S3Client({
+                        region: 'eu-north-1',
+                        // Credentials for testing, will be removed later to not be abused
+                        credentials: {
+                            accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
+                            secretAccessKey: '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',
+                        },
+                    });
+                    _a.label = 1;
                 case 1:
+                    _a.trys.push([1, 4, , 5]);
+                    return [4 /*yield*/, processTracks(s3)];
+                case 2:
                     artistsInTracks = _a.sent();
                     // Process artists after tracks are cleared
-                    return [4 /*yield*/, processArtists(artistsInTracks)];
-                case 2:
+                    return [4 /*yield*/, processArtists(artistsInTracks, s3)];
+                case 3:
                     // Process artists after tracks are cleared
                     _a.sent();
-                    return [3 /*break*/, 4];
-                case 3:
+                    return [3 /*break*/, 5];
+                case 4:
                     error_1 = _a.sent();
                     console.error('Error:', error_1);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
             }
         });
     });
