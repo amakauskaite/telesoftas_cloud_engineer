@@ -50,11 +50,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var client_s3_1 = require("@aws-sdk/client-s3");
 var file = require("./file_handling");
 var trans = require("./transformations");
-var BUCKET_NAME = 'auma-spotify';
-var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
-var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
-var ARTISTS_FILENAME = 'artists.json';
-var TRACKS_FILENAME = 'tracks.json';
+var config_1 = require("./config");
 // First function of the main flow - processing tracks.csv
 // Returns a set of artists that have tracks in the filtered file
 function processTracks(s3) {
@@ -64,7 +60,7 @@ function processTracks(s3) {
             switch (_a.label) {
                 case 0:
                     console.log('Downloading tracks CSV...');
-                    return [4 /*yield*/, file.downloadAndExtractCSV(TRACKS_URL)];
+                    return [4 /*yield*/, file.downloadAndExtractCSV(config_1.TRACKS_URL)];
                 case 1:
                     tracks = _a.sent();
                     console.log('Filtering tracks...');
@@ -77,7 +73,7 @@ function processTracks(s3) {
                         return updatedItem;
                     });
                     console.log('Uploading tracks to S3...');
-                    return [4 /*yield*/, file.uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME, s3)];
+                    return [4 /*yield*/, file.uploadJSONToS3(config_1.TRACKS_FILENAME, filteredTracks, config_1.S3_BUCKET_NAME, s3)];
                 case 2:
                     _a.sent();
                     artistsSet = new Set(filteredTracks.flatMap(function (track) { return track.artists; }));
@@ -100,7 +96,7 @@ function processArtists(artistsInTracks, s3) {
                 case 0:
                     // Download CSV files
                     console.log('Downloading artists CSV...');
-                    return [4 /*yield*/, file.downloadAndExtractCSV(ARTISTS_URL)];
+                    return [4 /*yield*/, file.downloadAndExtractCSV(config_1.ARTISTS_URL)];
                 case 1:
                     artists = _a.sent();
                     // Filter the artists based on the filtered tracks
@@ -108,7 +104,7 @@ function processArtists(artistsInTracks, s3) {
                     filteredArtists = trans.filterArtists(artists, artistsInTracks);
                     // Upload the filtered tracks file to AWS S3
                     console.log('Uploading artists to S3...');
-                    return [4 /*yield*/, file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME, s3)];
+                    return [4 /*yield*/, file.uploadJSONToS3(config_1.ARTISTS_FILENAME, filteredArtists, config_1.S3_BUCKET_NAME, s3)];
                 case 2:
                     _a.sent();
                     return [2 /*return*/];
@@ -123,7 +119,11 @@ function main() {
             switch (_a.label) {
                 case 0:
                     s3 = new client_s3_1.S3Client({
-                        region: 'eu-north-1',
+                        region: config_1.S3_CONFIG.AWS_REGION,
+                        credentials: {
+                            accessKeyId: config_1.S3_CONFIG.AWS_ACCESS_KEY_ID,
+                            secretAccessKey: config_1.S3_CONFIG.AWS_SECRET_ACCESS_KEY,
+                        },
                     });
                     _a.label = 1;
                 case 1:

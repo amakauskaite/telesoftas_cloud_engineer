@@ -1,12 +1,7 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import * as file from './file_handling';
 import * as trans from './transformations';
-
-const BUCKET_NAME = 'auma-spotify';
-const ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
-const TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
-const ARTISTS_FILENAME = 'artists.json';
-const TRACKS_FILENAME = 'tracks.json';
+import { S3_BUCKET_NAME, ARTISTS_URL, TRACKS_URL, ARTISTS_FILENAME, TRACKS_FILENAME, S3_CONFIG } from './config';
 
 // First function of the main flow - processing tracks.csv
 // Returns a set of artists that have tracks in the filtered file
@@ -28,7 +23,7 @@ async function processTracks(s3: S3Client) {
   });
 
   console.log('Uploading tracks to S3...');
-  await file.uploadJSONToS3(TRACKS_FILENAME, filteredTracks, BUCKET_NAME, s3);
+  await file.uploadJSONToS3(TRACKS_FILENAME, filteredTracks, S3_BUCKET_NAME, s3);
 
   // Extract artists
   const artistsSet = new Set(filteredTracks.flatMap(track => track.artists));
@@ -54,7 +49,7 @@ async function processArtists(artistsInTracks, s3: S3Client) {
 
   // Upload the filtered tracks file to AWS S3
   console.log('Uploading artists to S3...');
-  await file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME, s3);
+  await file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, S3_BUCKET_NAME, s3);
 
 }
 
@@ -62,7 +57,11 @@ async function main() {
 
   // Initialize AWS S3 Client (v3)
   const s3 = new S3Client({
-    region: 'eu-north-1',
+    region: S3_CONFIG.AWS_REGION,
+    credentials: {
+      accessKeyId: S3_CONFIG.AWS_ACCESS_KEY_ID,
+      secretAccessKey: S3_CONFIG.AWS_SECRET_ACCESS_KEY,
+    },
   });
 
   try {
