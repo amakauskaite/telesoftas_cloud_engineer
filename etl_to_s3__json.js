@@ -49,50 +49,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var client_s3_1 = require("@aws-sdk/client-s3");
 var file = require("./file_handling");
+var trans = require("./transformations");
 var BUCKET_NAME = 'auma-spotify';
 var ARTISTS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/artists.csv';
 var TRACKS_URL = 'https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks/tracks.csv';
 var ARTISTS_FILENAME = 'artists.json';
 var TRACKS_FILENAME = 'tracks.json';
-// Filter tracks to only include valid tracks (with a name and duration >= 60 seconds)
-function filterTracks(data) {
-    return data.filter(function (row) { return row.name !== null && row.duration_ms >= 60000; });
-}
-// Filter artists to only include those who have tracks in the filtered tracks list
-function filterArtists(artists, artistsFromTracks) {
-    return artists.filter(function (artist) { return artistsFromTracks.has(artist.name); });
-}
-// Create year, month, day fields; assign undefined if the month and/or day is missing
-function parseDateParts(dateParts) {
-    var _a = dateParts.map(function (part) { return (part ? parseInt(part, 10) : null); }), year = _a[0], _b = _a[1], month = _b === void 0 ? null : _b, _c = _a[2], day = _c === void 0 ? null : _c;
-    return { year: year, month: month, day: day };
-}
-// Generic function to explode a date field into year, month, and day
-function explodeDateField(updatedJson, dateField) {
-    if (updatedJson[dateField] != null) {
-        // Explicitly casting to string for cases when there's only the year known
-        var dateParts = String(updatedJson[dateField]).split('-');
-        var _a = parseDateParts(dateParts), year = _a.year, month = _a.month, day = _a.day;
-        updatedJson['year'] = year;
-        updatedJson['month'] = month;
-        updatedJson['day'] = day;
-    }
-}
-// Update danceability value
-function stringifyDanceability(updatedJson) {
-    if (updatedJson['danceability'] >= 0 && updatedJson['danceability'] < 0.5) {
-        updatedJson['danceability'] = 'Low';
-    }
-    else if (updatedJson['danceability'] >= 0.5 && updatedJson['danceability'] <= 0.6) {
-        updatedJson['danceability'] = 'Medium';
-    }
-    else if (updatedJson['danceability'] > 0.6 && updatedJson['danceability'] <= 1) {
-        updatedJson['danceability'] = 'High';
-    }
-    else {
-        updatedJson['danceability'] = 'Undefined';
-    }
-}
 // First function of the main flow - processing tracks.csv
 // Returns a set of artists that have tracks in the filtered file
 function processTracks(s3) {
@@ -106,12 +68,12 @@ function processTracks(s3) {
                 case 1:
                     tracks = _a.sent();
                     console.log('Filtering tracks...');
-                    filteredTracks = filterTracks(tracks);
+                    filteredTracks = trans.filterTracks(tracks);
                     console.log('Processing release dates and danceability...');
                     filteredTracks = filteredTracks.map(function (item) {
                         var updatedItem = __assign({}, item);
-                        explodeDateField(updatedItem, 'release_date'); // Explode release date
-                        stringifyDanceability(updatedItem);
+                        trans.explodeDateField(updatedItem, 'release_date'); // Explode release date
+                        trans.stringifyDanceability(updatedItem);
                         return updatedItem;
                     });
                     console.log('Uploading tracks to S3...');
@@ -139,7 +101,7 @@ function processArtists(artistsInTracks, s3) {
                 case 1:
                     artists = _a.sent();
                     console.log('CSV file downloaded');
-                    filteredArtists = filterArtists(artists, artistsInTracks);
+                    filteredArtists = trans.filterArtists(artists, artistsInTracks);
                     console.log('Artists filtered');
                     // Upload the filtered tracks file to AWS S3
                     return [4 /*yield*/, file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, BUCKET_NAME, s3)];
@@ -159,11 +121,6 @@ function main() {
                 case 0:
                     s3 = new client_s3_1.S3Client({
                         region: 'eu-north-1',
-                        // Credentials for testing, will be removed later to not be abused
-                        credentials: {
-                            accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
-                            secretAccessKey: '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',
-                        },
                     });
                     _a.label = 1;
                 case 1:
