@@ -48,6 +48,7 @@
     "deepmerge": "^4.3.1",
     "detect-newline": "^3.1.0",
     "diff-sequences": "^29.6.3",
+    "dotenv": "^16.4.7",
     "electron-to-chromium": "^1.5.119",
     "emittery": "^0.13.1",
     "emoji-regex": "^8.0.0",
