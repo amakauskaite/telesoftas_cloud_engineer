@@ -56,3 +56,35 @@ describe("filterArtists", () => {
         expect(trans.filterArtists(artists_input, artistsFromTracks_input)).toEqual([]);
     });
 });
+
+describe("parseDateParts", () => {
+    it("should return 3 fields: year, month, day, assigned with values from the input", () => {
+        const input = ["2013", "06", "13"];
+
+        const year = 2013;
+        const month = 6;
+        const day = 13;
+
+        expect(trans.parseDateParts(input)).toEqual({ year, month, day });
+    });
+
+    it("should return 3 fields: year, month, day, with null assigned to missing day", () => {
+        const input = ["2013", "06"];
+
+        const year = 2013;
+        const month = 6;
+        const day = null;
+
+        expect(trans.parseDateParts(input)).toEqual({ year, month, day });
+    });
+
+    it("should return 3 fields: year, month, day, with null assigned to missing month and day", () => {
+        const input = ["2013"];
+
+        const year = 2013;
+        const month = null;
+        const day = null;
+
+        expect(trans.parseDateParts(input)).toEqual({ year, month, day });
+    });
+});
