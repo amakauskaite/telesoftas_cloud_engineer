@@ -76,12 +76,8 @@ var TRACKS_FILENAME = 'tracks.csv';
 // Initialize AWS S3 Client (v3)
 var s3 = new client_s3_1.S3Client({
     region: 'eu-north-1',
-    // Credentials for testing, will be removed later to not be abused
-    credentials: {
-        accessKeyId: 'AKIAX5T2WSIPGYLZQKQO',
-        secretAccessKey: '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',
     },
-});
+);
 // Download and extract CSV from a ZIP folder
 function downloadAndExtractCSV(url) {
     return __awaiter(this, void 0, void 0, function () {
