@@ -50,17 +50,17 @@ function stringifyDanceability(updatedJson) {
     }
 }
 function transformCSVField(value, field) {
-    if (field === 'artists' && value) {
-        var cleanedValue = value.replace(/[\[\]]/g, '')
-            .replace(/"([^"]*)"/g, function (match) { return match.replace(/,/g, '\\comma\\'); });
-        var matches = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g);
-        return matches ?
-            matches.map(function (item) { return item.trim().replace(/^['"]|['"]$/g, ''); })
-                .map(function (item) { return item.replace(/\\comma\\/g, ','); })
+    // Return an empty array if value is falsy (null, undefined, or empty string)
+    if (!value) {
+        return [];
+    }
+    if (field === 'artists') {
+        var cleanedValue = value.replace(/^\[|\]$/g, ''); // Remove square brackets around the array
+        // Match quoted or unquoted values correctly, including handling escaped quotes and commas inside quotes
+        var matches = cleanedValue.match(/"([^"\\]*(\\.[^"\\]*)*)"|'([^'\\]*(\\.[^'\\]*)*)'|[^,]+/g);
+        return matches
+            ? matches.map(function (item) { return item.trim().replace(/^['"]|['"]$/g, '').replace(/\\"/g, '"'); })
             : [];
     }
-    if (!value)
-        return [];
-    else
-        return value;
+    return value; // If the field is not 'artists', return the original value
 }

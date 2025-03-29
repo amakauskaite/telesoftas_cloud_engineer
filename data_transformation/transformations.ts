@@ -46,18 +46,20 @@ export function stringifyDanceability(updatedJson: any) {
 }
 
 export function transformCSVField(value: string, field: string): any {
-  if (field === 'artists' && value) {
-      const cleanedValue = value.replace(/[\[\]]/g, '')
-          .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
-
-      const matches = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g);
-      return matches ?
-          matches.map(item => item.trim().replace(/^['"]|['"]$/g, ''))
-          .map(item => item.replace(/\\comma\\/g, ','))
-          : [];
-  }
-  if (!value)
+  // Return an empty array if value is falsy (null, undefined, or empty string)
+  if (!value) {
     return [];
-  else
-    return value;
+  }
+
+  if (field === 'artists') {
+    const cleanedValue = value.replace(/^\[|\]$/g, ''); // Remove square brackets around the array
+
+    // Match quoted or unquoted values correctly, including handling escaped quotes and commas inside quotes
+    const matches = cleanedValue.match(/"([^"\\]*(\\.[^"\\]*)*)"|'([^'\\]*(\\.[^'\\]*)*)'|[^,]+/g);
+
+    return matches
+      ? matches.map(item => item.trim().replace(/^['"]|['"]$/g, '').replace(/\\"/g, '"'))
+      : [];
+  }
+  return value;  // If the field is not 'artists', return the original value
 }
