@@ -24,9 +24,10 @@ export async function downloadAndExtractCSV(url: string): Promise<any[]> {
             header: true,
             dynamicTyping: true,
             transform: (value, field) => {
+                // Transforms artists array saved in a string (as per CSV convention)
+                // to a javascript object array-friendly format
+                // Might be a good idea to update all arrays, if later the output will be a json file.
                 if (field === 'artists') {
-                    // Cleaning up the artists field that will be used later
-                    // We'll need an array of strings not just a string with an array inside
                     const cleanedValue = value.replace(/[\[\]]/g, '')
                         .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
 
