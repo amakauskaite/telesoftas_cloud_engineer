@@ -53,6 +53,12 @@ The schema creation is optional, already existing schemas (or just the default `
 Go to your preferred (or created) database and create empty tables using the code in `create_tables.sql`.
 Now, ideally, the tracks and artists files would be places in `C:/Program Files/PostgreSQL/<version>/data/<json_name.json>` and a script similar to the one found in the first half of `load_tracks.sql` would be used to load the data. Sadly, it doesn't work as the format in which the json arrays are saved is not the same as it would be if the arrays were saved in CSV (or the format that would be expected by the `COPY` command). In the interest of time, I've decided not to dig in deeper into how I could either change the way the JSON files were saved or save the data in a CSV format or search for another solution that might work with my file structure and provided some test data that should cover the analysis scenarios from the task. The `INSERT` statements for these can be found in the second half of the `load_tracks.sql` file.
 #### Execution
+Each of the files in `analysis_views` cover a scenario described in the task. 
+1. `track_overview`
+2. `followed_artist_tracks`
+3. `yearly_most_energetic_track`
+
+Run each file's content in pgAdmin or your tool of choice that would be appropriate for the task. Write a simple `SELECT` statement (`SELECT * FROM views.<view_name>`) to view the contents of the view. *NB:* if the actual data (not the test sample) is loaded, it might be a good idea to limit the number of rows returned by the `SELECT`.
 
 ## Development Notes: Insights and Solution Drawbacks
 
