@@ -3,11 +3,11 @@ import * as Papa from 'papaparse';
 import * as JSZip from 'jszip';
 import { Upload } from '@aws-sdk/lib-storage';
 import * as stream from 'stream';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import * as trans from './transformations';
 
 // Download and extract CSV from a ZIP folder
-// Asuming that the ZIP folder only holds the one file we need
+// Assuming that the ZIP folder only holds the one file we need
 export async function downloadAndExtractCSV(url: string): Promise<any[]> {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     const zip = await JSZip.loadAsync(response.data);
@@ -31,7 +31,7 @@ export async function downloadAndExtractCSV(url: string): Promise<any[]> {
     });
 }
 
-// For perfomance, a stream is used to upload data to S3
+// For performance, a stream is used to upload data to S3
 class JSONReadableStream extends stream.Readable {
     private index: number;
     private jsonStarted: boolean;

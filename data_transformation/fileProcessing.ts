@@ -7,7 +7,7 @@ import { S3_BUCKET_NAME, ARTISTS_URL, TRACKS_URL, ARTISTS_FILENAME, TRACKS_FILEN
 // Returns a set of artists that have tracks in the filtered file
 export async function processTracks(s3: S3Client) {
   console.log('Downloading tracks CSV...');
-  const tracks = await file.downloadAndExtractCSV(TRACKS_URL);
+  let tracks = await file.downloadAndExtractCSV(TRACKS_URL);
 
   console.log('Filtering tracks...');
   let filteredTracks = trans.filterTracks(tracks);
@@ -30,8 +30,8 @@ export async function processTracks(s3: S3Client) {
 
   // Free memory as we're not going to use tracks data anymore
   console.log('Releasing memory...');
-  filteredTracks.length = 0;
-  tracks.length = 0;
+  filteredTracks = [];
+  tracks = [];
 
   return artistsSet;
 }
