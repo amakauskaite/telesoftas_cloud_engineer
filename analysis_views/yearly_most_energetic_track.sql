@@ -1,4 +1,4 @@
-CREATE VIEW yearly_most_energetic_track
+CREATE OR REPLACE VIEW views.yearly_most_energetic_track
 AS
 SELECT
     release_year,
