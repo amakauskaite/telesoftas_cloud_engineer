@@ -5,7 +5,7 @@ Task description can be found in [task.pdf](task.pdf).
 This document will cover the following topics:
 - Repository structure
 - How to configure and run the solution
-- Development notes: insights and solution drawbacks
+- Development notes
 
 ## Repository Structure
 The repository contains 4 folders as well as some files not placed in any of the folders:
@@ -46,12 +46,13 @@ Make sure you have typescript installed (for example by running `tsc --version`)
 If there's a need to run unit tests that can be done by running the whole test suite with `npm test` (directory can be any folder in the repository). 
 
 ### PostgreSQL
-Download the files from S3 that were uploaded with the Typescript solution.
+#### Prerequisites
+Download the files from S3 that were uploaded with the Typescript solution (or use your personal copy :) ).
 #### Configuration
 Login to your PostgreSQL server with your credentials. If needed, create a database and user for this solution, if they're already exist, create two schemas: `music` (for `tracks` and `artists` tables) and `views` (for `analysis` views). Use `setup_workspace.sql` to achieve that.
 The schema creation is optional, already existing schemas (or just the default `public` schema) can be used, if other scripts are adjusted accordingly.
 Go to your preferred (or created) database and create empty tables using the code in `create_tables.sql`.
-Now, ideally, the tracks and artists files would be places in `C:/Program Files/PostgreSQL/<version>/data/<json_name.json>` and a script similar to the one found in the first half of `load_tracks.sql` would be used to load the data. Sadly, it doesn't work as the format in which the json arrays are saved is not the same as it would be if the arrays were saved in CSV (or the format that would be expected by the `COPY` command). In the interest of time, I've decided not to dig in deeper into how I could either change the way the JSON files were saved or save the data in a CSV format or search for another solution that might work with my file structure and provided some test data that should cover the analysis scenarios from the task. The `INSERT` statements for these can be found in the second half of the `load_tracks.sql` file.
+Now, ideally, the tracks and artists files would be placed in `C:/Program Files/PostgreSQL/<version>/data/<json_name.json>` and a script similar to the one found in the first half of `load_tracks.sql` would be used to load the data. Sadly, it doesn't work as the format in which the json arrays are saved is not the same as it would be if the arrays were saved in CSV (or the format that would be expected by the `COPY` command). In the interest of time, I've decided not to dig in deeper into how I could either change the way the JSON files were saved or save the data in a CSV format or search for another solution that might work with my file structure and provided some test data that should cover the analysis scenarios from the task. The `INSERT` statements for these can be found in the second half of the `load_tracks.sql` file.
 #### Execution
 Each of the files in `analysis_views` cover a scenario described in the task. 
 1. `track_overview`
@@ -60,6 +61,9 @@ Each of the files in `analysis_views` cover a scenario described in the task.
 
 Run each file's content in pgAdmin or your tool of choice that would be appropriate for the task. Write a simple `SELECT` statement (`SELECT * FROM views.<view_name>`) to view the contents of the view. *NB:* if the actual data (not the test sample) is loaded, it might be a good idea to limit the number of rows returned by the `SELECT`.
 
-## Development Notes: Insights and Solution Drawbacks
-
-Thank you if you've read till the end!
+## Development Notes
+- I've never used Typescript, Node.js, AWS, Jest so most of the code for the data transformation part is based on ChatGPT's answers. I've tried to apply some good programming practises that I know to make the code more uniform, tidy, consistent and logically grouped. I've also only used PostgreSQL on Linux in a command line for simple SQL queries as it was my first SQL "flavour", but that was almost 10 years ago, so I've learnt something new in this segment of the task as well. 
+- I'm aware that my decision to save my transformation output in JSON was probably not the right one and I should've stuck to the original CSV file format. I also should've made the formatting for output arrays consistent for all arrays in the files, not just change it for the `artist_names` array because I used it's values. To be fair, I'm used to querying database data and not working with text files, which made me spend an embarrassing amount of time to load the data and format it, so I made a decision to de-prioritize spending more time on proper formatting and focus on other tasks. This is also the main reason why I don't have a working script for importing data to PostgreSQL, as the importing heavily relies on the file formatting.
+- I probably should've written more unit tests to cover all remaining functions, not just the one's related to transformations. As the transformations were the main focus of the solution, I decided to focus on them and write more tests if I had time.
+- I chose to use an `.env` file for AWS authentication for the simplicity of it. I know that in PROD this would not be a go-to approach and if it was a code that's being run on a periodical basis, it would use a system account, not a personal one, and run online (from what I've gathered in Lambda or similar application).
+- I know that the `package.json` file contains more dependencies than are actually used and I could've uninstalled a package when I figured out I'm not going to use it.
