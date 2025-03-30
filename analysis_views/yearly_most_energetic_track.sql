@@ -1,6 +1,11 @@
 CREATE VIEW yearly_most_energetic_track
 AS
-SELECT * FROM
+SELECT
+    release_year,
+    track_id,
+    track_name,
+    track_energy
+FROM
 (
     -- NOTE: this syntax is PostgreSQL specific
     -- In other dialects, it should be substituted to a window function
