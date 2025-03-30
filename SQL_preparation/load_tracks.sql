@@ -1,38 +1,3 @@
--- Create tables
-CREATE TABLE tracks (
-	id TEXT PRIMARY KEY,
-	name TEXT,
-	popularity INT,
-	duration_ms INT,
-	explicit BOOL,
-	artists TEXT[],
-	id_artists TEXT[],
-	release_date DATE,
-	danceability VARCHAR(9),
-	energy float8,
-	key SMALLINT,
-	loudness float8,
-	mode BOOLEAN,
-	speechiness float8,
-	acousticness float8,
-	instrumentalness float8,
-	liveness float8,
-	valence float8,
-	tempo float8,
-	time_signature SMALLINT,
-	year SMALLINT,
-	month SMALLINT,
-	day SMALLINT
-);
-
-CREATE TABLE artists (
-	id TEXT PRIMARY KEY,
-	followers INT,
-	genres TEXT[],
-	name TEXT,
-	popularity SMALLINT
-);
-
 -- Attempt to import data from json files
 CREATE TEMP TABLE temp_json_import_tracks (data JSONB);
 
@@ -65,9 +30,8 @@ SELECT
 	(data->>'day')::SMALLINT
 FROM temp_json_import_tracks;
 
--- Fill tables with temporary test data
-
-
+-- Fill tables with test data
+-- Inserting tracks
 INSERT INTO music.tracks (
     id, name, popularity, duration_ms, explicit, artists, id_artists, release_date, danceability, energy, key, loudness, mode, 
     speechiness, acousticness, instrumentalness, liveness, valence, tempo, time_signature, year, month, day
@@ -101,7 +65,7 @@ INSERT INTO music.tracks (
     0.05, 0.1, 0.0, 0.12, 0.75, 120.5, 4, 1922, null, null
 );
 
--- Inserting the artists into the artists table
+-- Inserting the artists
 INSERT INTO music.artists (id, followers, genres, name, popularity)
 VALUES
 ('idA', 10000, ARRAY['Pop', 'Rock'], 'Artist A', 80),
@@ -113,7 +77,7 @@ VALUES
 ('idG', null, ARRAY['Pop'], 'my "special" artist', 40),
 ('idH', 12000, null, 'Solo artist, feat. other solo artist', 42);
 
--- Truncate tables, if needed
+-- Truncate tables, if needed 
 -- TRUNCATE TABLE music.artists;
 -- TRUNCATE TABLE music.tracks;
 
