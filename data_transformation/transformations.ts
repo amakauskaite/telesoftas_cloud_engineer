@@ -33,7 +33,7 @@ export function stringifyDanceability(updatedJson: any) {
   const danceability = updatedJson['danceability'];
 
   if (danceability === null || danceability === undefined || isNaN(danceability)) {
-    updatedJson['danceability'] = 'Undefined';
+    updatedJson['danceability'] = null;
   } else if (danceability >= 0 && danceability < 0.5) {
     updatedJson['danceability'] = 'Low';
   } else if (danceability >= 0.5 && danceability <= 0.6) {
@@ -41,7 +41,7 @@ export function stringifyDanceability(updatedJson: any) {
   } else if (danceability > 0.6 && danceability <= 1) {
     updatedJson['danceability'] = 'High';
   } else {
-    updatedJson['danceability'] = 'Undefined';
+    updatedJson['danceability'] = null;
   }
 }
 
@@ -54,14 +54,23 @@ export function transformCSVField(value: string, field: string): any {
   if (field === 'artists') {
     // Cleaning up the artists field that will be used later
     // We'll need an array of strings not just a string with an array inside
-    const cleanedValue = value.replace(/[\[\]]/g, '')
-      .replace(/"([^"]*)"/g, (match) => match.replace(/,/g, '\\comma\\'));
+    const cleanedValue = value
+      // Remove outer square brackets
+      .replace(/[\[\]]/g, '')
+      // Change comma's between single/double qoutes with dummy value
+      .replace(/(["'])(.*?)(\1)/g, (match, quote, content) => 
+        `${quote}${content.replace(/,/g, '\\comma\\')}${quote}`);
 
+    // Split by unescaped single/double qoutes and commas
     const matches = cleanedValue.match(/'([^']|\\')*'|"([^"]|\\")*"|[^,]+/g)
     
     return matches ?
-    matches.map(item => item.trim().replace(/^['"]|['"]$/g, '')).map(item => item.replace(/\\comma\\/g, ','))
-    : [];
+      matches
+        // Remove duplicate qoutes
+        .map(item => item.trim().replace(/^['"]|['"]$/g, ''))
+        // Change dummy value to actual comma
+        .map(item => item.replace(/\\comma\\/g, ','))
+      : [];
   }
   return value;  // If the field is not 'artists', return the original value
 }

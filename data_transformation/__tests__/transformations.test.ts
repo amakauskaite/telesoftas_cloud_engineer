@@ -171,20 +171,20 @@ describe("stringifyDanceability", () => {
         expect(json_input).toEqual(json_expected_output);
     });
 
-    it("should update the original json's danceability value to a string value 'Undefined', when the value is not between [0; 1]", () => {
+    it("should update the original json's danceability value to null, when the value is not between [0; 1]", () => {
         const json_input = { id: 1, danceability: 1.1 };
 
-        const json_expected_output = { id: 1, danceability: "Undefined" };
+        const json_expected_output = { id: 1, danceability: null };
 
         trans.stringifyDanceability(json_input);
 
         expect(json_input).toEqual(json_expected_output);
     });
 
-    it("should update the original json's danceability value to a string value 'Undefined', when the value is null", () => {
+    it("should update the original json's danceability value to null, when the value is null", () => {
         const json_input = { id: 1, danceability: null };
 
-        const json_expected_output = { id: 1, danceability: "Undefined" };
+        const json_expected_output = { id: 1, danceability: null };
 
         trans.stringifyDanceability(json_input);
 
@@ -200,9 +200,16 @@ describe('transformCSVField', () => {
         expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
     });
 
-    it('should correctly handle artist names with commas inside quotes', () => {
+    it('should correctly handle artist names with commas inside double quotes', () => {
         const input = `["John, Doe", "Jane Smith"]`;
         const expectedOutput = ["John, Doe", "Jane Smith"];
+
+        expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
+    });
+
+    it('should correctly handle artist names with commas inside single quotes', () => {
+        const input = `['John, Doe', 'Jane Smith']`;
+        const expectedOutput = ['John, Doe', 'Jane Smith'];
 
         expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
     });
@@ -228,7 +235,7 @@ describe('transformCSVField', () => {
     })
 
     it('should correctly process an artist name containing quotes', () => {
-        const input = `["My \"Special\" Artist", "Normal Artist"]`;
+        const input = `['My "Special" Artist', "Normal Artist"]`;
         const expectedOutput = ['My "Special" Artist', 'Normal Artist'];
 
         expect(trans.transformCSVField(input, 'artists')).toEqual(expectedOutput);
