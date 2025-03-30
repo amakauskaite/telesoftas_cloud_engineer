@@ -22,6 +22,7 @@ Contains scripts for setting up a workspace in `PostgreSQL` (creating a database
 ### data_transformation
 Contains the Typescript solution for downloading artists and tracks CSV files from Kaggle (`fileProcessing.ts`, `fileHandling.ts`), applying transformations (`transformations.ts`) and uploading the changed files to AWS S3 (`fileProcessing.ts`, `fileHandling.ts`). The configurations, such as AWS bucket name or file URLs/names, are stored in `config.ts`. The solution is run from `main.ts`.
 **When setting up this folder is where the `.env` file should be placed.**
+This folder also contains a subfolder (`__tests__`) that contains Jest unit tests for the functions described in `transformations.ts`.
 
 ### wip
 This folder is not part of the end solution, it's merely a compilation of files that were used to test some of Typescript's functionalities as well as csv files with sampled data of some of the corner cases. The purpose was to better understand the language, create first drafts of the end solution, analyse input data to learn more about it's data types. I'm leaving these files in case they would help to gain some insights into my decisions, knowing that they are neither refined nor tidy.
@@ -40,6 +41,9 @@ The values should be plain strings without any quotes. The user which's credenti
 
 After creating the `.env` file and placing it in the right folder, `config.ts` in the same folder should be updated by changing the value of `S3_BUCKET_NAME` with the bucket that will be used and to which the user which's credentials were saved has necessary permissions.
 #### Execution
+Make sure you have typescript installed (for example by running `tsc --version`) then change directory to the `data_transformation` folder. Compile JavaScript files by running `tsc main.ts` and then run the solution with `node main.js`. If it's successful, messages logging the progress of the solution will be printed out in the console.
+### Test execution
+If there's a need to run unit tests that can be done by running the whole test suite with `npm test` (directory can be any folder in the repository). 
 
 ## Development Notes: Insights and Solution Drawbacks
 
