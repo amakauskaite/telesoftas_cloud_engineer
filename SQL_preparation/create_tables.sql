@@ -8,7 +8,7 @@
 ** NOTE 2: values containing zeroes and ones (i.e. explicit and more) have been changed to booleans
 ** to use less storage place and leave less space for interpretation for what these columns describe.
 */
-CREATE TABLE tracks (
+CREATE TABLE music.tracks (
 	id TEXT PRIMARY KEY,
 	name TEXT,
 	popularity INT,
@@ -34,7 +34,7 @@ CREATE TABLE tracks (
 	day SMALLINT
 );
 
-CREATE TABLE artists (
+CREATE TABLE music.artists (
 	id TEXT PRIMARY KEY,
 	followers INT,
 	genres TEXT[],

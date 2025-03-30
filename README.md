@@ -45,6 +45,15 @@ Make sure you have typescript installed (for example by running `tsc --version`)
 ### Test execution
 If there's a need to run unit tests that can be done by running the whole test suite with `npm test` (directory can be any folder in the repository). 
 
+### PostgreSQL
+Download the files from S3 that were uploaded with the Typescript solution.
+#### Configuration
+Login to your PostgreSQL server with your credentials. If needed, create a database and user for this solution, if they're already exist, create two schemas: `music` (for `tracks` and `artists` tables) and `views` (for `analysis` views). Use `setup_workspace.sql` to achieve that.
+The schema creation is optional, already existing schemas (or just the default `public` schema) can be used, if other scripts are adjusted accordingly.
+Go to your preferred (or created) database and create empty tables using the code in `create_tables.sql`.
+Now, ideally, the tracks and artists files would be places in `C:/Program Files/PostgreSQL/<version>/data/<json_name.json>` and a script similar to the one found in the first half of `load_tracks.sql` would be used to load the data. Sadly, it doesn't work as the format in which the json arrays are saved is not the same as it would be if the arrays were saved in CSV (or the format that would be expected by the `COPY` command). In the interest of time, I've decided not to dig in deeper into how I could either change the way the JSON files were saved or save the data in a CSV format or search for another solution that might work with my file structure and provided some test data that should cover the analysis scenarios from the task. The `INSERT` statements for these can be found in the second half of the `load_tracks.sql` file.
+#### Execution
+
 ## Development Notes: Insights and Solution Drawbacks
 
 Thank you if you've read till the end!
