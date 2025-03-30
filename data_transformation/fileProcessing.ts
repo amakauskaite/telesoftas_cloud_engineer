@@ -1,11 +1,11 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import * as file from './file_handling';
+import * as file from './fileHandling';
 import * as trans from './transformations';
-import { S3_BUCKET_NAME, ARTISTS_URL, TRACKS_URL, ARTISTS_FILENAME, TRACKS_FILENAME, S3_CONFIG } from './config';
+import { S3_BUCKET_NAME, ARTISTS_URL, TRACKS_URL, ARTISTS_FILENAME, TRACKS_FILENAME} from './config';
 
 // First function of the main flow - processing tracks.csv
 // Returns a set of artists that have tracks in the filtered file
-async function processTracks(s3: S3Client) {
+export async function processTracks(s3: S3Client) {
   console.log('Downloading tracks CSV...');
   const tracks = await file.downloadAndExtractCSV(TRACKS_URL);
 
@@ -38,7 +38,7 @@ async function processTracks(s3: S3Client) {
 
 // Second function of the main flow - processing artists.csv
 // Using the set of artists from tracks
-async function processArtists(artistsInTracks, s3: S3Client) {
+export async function processArtists(artistsInTracks, s3: S3Client) {
   // Download CSV files
   console.log('Downloading artists CSV...');
   const artists = await file.downloadAndExtractCSV(ARTISTS_URL);
@@ -52,29 +52,3 @@ async function processArtists(artistsInTracks, s3: S3Client) {
   await file.uploadJSONToS3(ARTISTS_FILENAME, filteredArtists, S3_BUCKET_NAME, s3);
 
 }
-
-async function main() {
-
-  // Initialize AWS S3 Client (v3)
-  const s3 = new S3Client({
-    region: S3_CONFIG.AWS_REGION,
-    credentials: {
-      accessKeyId: S3_CONFIG.AWS_ACCESS_KEY_ID,
-      secretAccessKey: S3_CONFIG.AWS_SECRET_ACCESS_KEY,
-    },
-  });
-
-  try {
-    // Work with tracks file (as it's used as input to the artists file)
-    const artistsInTracks = await processTracks(s3);
-
-    // Process artists after tracks are cleared
-    await processArtists(artistsInTracks, s3);
-
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-// Run the main function
-main();
